@@ -17,7 +17,7 @@ Người dùng cuối nói tiếng Việt. Giao diện tiếng Việt, có cấu
 | CSDL | MongoDB (replica set, bật xác thực); driver chính thức `mongodb` |
 | Validate | Zod (mọi input từ bên ngoài) |
 | Đăng nhập | Better Auth + adapter MongoDB |
-| Lưu file | Bucket tương thích S3 (R2 ở production, MinIO ở dev) qua AWS SDK v3 |
+| Lưu file | Bucket tương thích S3 (R2 ở production; server S3 cho dev chọn ở GĐ 2 vì image MinIO đã bị gỡ khỏi Docker Hub) qua AWS SDK v3 |
 | Cache/rate limit | Redis (tùy chọn ở giai đoạn đầu; có fallback in-memory cho dev) |
 | Email | Nhà cung cấp email giao dịch (cấu hình qua env, bọc sau interface `Mailer`) |
 | SMS/OTP | Nhà cung cấp Việt Nam (ưu tiên Zalo ZNS, dự phòng SMS), bọc sau interface `SmsProvider` |
@@ -31,22 +31,25 @@ Không thêm thư viện mới nếu chưa cần. Khi cần, giải thích lý d
 
 ## 3. Lệnh thường dùng
 
-Các lệnh dưới đây là chuẩn dự kiến. Nếu `package.json` khác, sửa file này cho khớp thực tế.
+Các lệnh dưới đây khớp với `package.json` hiện tại. Khi đổi script, sửa file này cho khớp.
 
 ```bash
 # Phát triển
-docker compose -f compose.yml -f compose.dev.yml up -d   # Mongo, Redis, MinIO cho dev
+./docker/scripts/gen-keyfile.sh                          # một lần: keyfile replica set
+docker compose -f compose.yml -f compose.dev.yml up -d   # Mongo (replica set) + Redis cho dev
 npm run dev                                              # Next.js dev server
 
 # Kiểm tra chất lượng (bắt buộc pass trước khi báo xong)
 npm run lint
-npm run typecheck
+npm run typecheck          # next typegen && tsc --noEmit
+npm run format:check
 npm test
 npm run build
 
 # CSDL
 npm run db:migrate          # chạy migration và tạo index
 npm run db:migrate:status   # xem trạng thái migration
+npm run db:migrate:down     # quay lại một migration gần nhất
 npm run db:seed             # dữ liệu mẫu (chỉ dev/staging)
 
 # Docker production (trên server)
@@ -134,6 +137,7 @@ Quy ước:
 ### 5.3 Migration
 
 - Mọi thay đổi cấu trúc dữ liệu hoặc index phải là một migration có version trong `migrations/`. Không sửa DB production bằng tay.
+- File migration đặt ở `migrations/scripts/NNNN-ten.ts` và phải được thêm vào cuối mảng trong `migrations/index.ts`. `migrations/` là ngoại lệ duy nhất được dùng driver `mongodb` ngoài `src/server/dal/` (chạy ngoài Next.js).
 - Migration phải **idempotent** và có hướng quay lại (down) khi khả thi.
 - Chạy migration trong pipeline deploy, trước khi bật phiên bản app mới.
 - Đổi tên/xóa field: làm theo hai bước (thêm mới + chuyển dữ liệu, rồi mới xóa) để deploy không gián đoạn.
@@ -225,7 +229,7 @@ Mỗi pull request: lint → typecheck → test → build. Merge vào `main`: bu
 
 ## 12. Không được làm
 
-- Không gọi MongoDB ngoài `src/server/dal/`.
+- Không gọi MongoDB ngoài `src/server/dal/` (ngoại lệ: `migrations/`). ESLint chặn import `mongodb` và `@/server/db` ở những chỗ khác trong `src/`.
 - Không tin `userId`, `role` hay bất kỳ quyền nào từ input của client.
 - Không đưa `service_role`-kiểu secret hoặc khóa API xuống client.
 - Không publish cổng MongoDB ra internet; không dùng tài khoản root trong chuỗi kết nối của app.
@@ -280,7 +284,7 @@ SENTRY_DSN=
 
 Cập nhật mục này khi hoàn thành từng giai đoạn.
 
-- [ ] **Giai đoạn 0: Hạ tầng.** Repo, Dockerfile, Compose dev/prod, Mongo replica set có xác thực, Caddy, CI cơ bản, `/api/health`.
+- [x] **Giai đoạn 0: Hạ tầng.** Repo, Dockerfile, Compose dev/prod, Mongo replica set có xác thực, Caddy, CI cơ bản, `/api/health`. (Mongo ghim 8.2.12 vì 8.0/8.3 không chạy trên kernel ≥ 6.19. Workflow CI chưa chạy trên GitHub vì repo chưa có remote.)
 - [ ] **Giai đoạn 1: Lõi sản phẩm.** Better Auth (Google + email), DAL + phân quyền + test ma trận quyền, app học (flashcard SM-2, quiz, gõ đáp án, thống kê), khung /admin, quản lý role, audit log.
 - [ ] **Giai đoạn 2: Nội dung.** CRUD khóa học/bài/từ vựng, import CSV, upload ảnh S3, blog (Tiptap, sanitize, SEO, sitemap, RSS), thông báo.
 - [ ] **Giai đoạn 3: Hardening.** Rate limit, CSP và header, Sentry, uptime monitor, backup tự động + diễn tập khôi phục, quét image.
