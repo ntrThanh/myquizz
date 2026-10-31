@@ -1,12 +1,14 @@
 import "server-only";
 import { z } from "zod";
 
-// Chỉ biến môi trường của Giai đoạn 0; thêm dần khi tính năng cần.
+// Thêm biến vào đây khi tính năng cần tới.
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_URL: z.url(),
   MONGODB_URI: z.string().min(1),
   MONGODB_DB: z.string().min(1),
+  BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET cần ít nhất 32 ký tự"),
+  BETTER_AUTH_URL: z.url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

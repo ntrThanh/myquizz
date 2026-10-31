@@ -1,6 +1,7 @@
 import type { Migration } from "./types";
 import { migration as m0001 } from "./scripts/0001-init";
+import { migration as m0002 } from "./scripts/0002-core-collections";
 
 // Danh sách tường minh (thay vì quét thư mục) để có thể bundle thành một file chạy trong image.
 // Thêm migration mới vào cuối mảng.
-export const migrations: Migration[] = [m0001];
+export const migrations: Migration[] = [m0001, m0002];

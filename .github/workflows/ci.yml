@@ -15,15 +15,16 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    services:
-      # Mongo đơn lẻ, không xác thực: chỉ dùng cho test tích hợp của migration runner.
-      mongo:
-        image: mongo:8.2.12
-        ports: ["27017:27017"]
     env:
       MONGODB_TEST_URI: mongodb://127.0.0.1:27017/?directConnection=true
     steps:
       - uses: actions/checkout@v5
+      # Replica set 1 node, không xác thực, chỉ cho test tích hợp (DAL dùng transaction).
+      - name: Start MongoDB replica set
+        run: |
+          docker run -d --name mongo -p 27017:27017 mongo:8.2.12 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 30); do docker exec mongo mongosh --quiet --eval "db.adminCommand('ping')" && break; sleep 1; done
+          docker exec mongo mongosh --quiet --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]})"
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc

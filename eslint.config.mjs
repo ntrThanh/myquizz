@@ -10,7 +10,8 @@ const eslintConfig = defineConfig([
   {
     // Chỉ DAL được chạm MongoDB (CLAUDE.md §5.1).
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/server/dal/**", "src/server/db/**"],
+    // auth.ts: adapter của Better Auth cần DB client để quản lý users/sessions.
+    ignores: ["src/server/dal/**", "src/server/db/**", "src/server/auth/auth.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
