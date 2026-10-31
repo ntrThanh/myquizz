@@ -157,6 +157,8 @@ Hàm thuần, không phụ thuộc UI hay DB.
 - `q < 3`: `n = 0`, `interval = 1`.
 - `q >= 3`: `n += 1`; `n == 1` → `interval = 1`; `n == 2` → `interval = 6`; `n >= 3` → `interval = round(interval_cũ * ef)`.
 - `ef = ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))`, tối thiểu 1.3, mặc định ban đầu 2.5.
+- `interval` khi `n >= 3` dùng `ef` **cũ** (trước khi cập nhật), theo SM-2 gốc. `ef` làm tròn 2 chữ số sau mỗi lượt (mọi bước thay đổi đều là bội của 0.02) để không tích lũy sai số float.
+- Tính ngày theo múi giờ dùng `src/lib/day.ts` (Intl, cộng theo ngày lịch nên đúng cả khi đổi giờ DST).
 - Nút giao diện: Again = 0, Hard = 3, Good = 4, Easy = 5. Quiz: đúng = Good, sai = Again.
 - `dueDate` tính theo ngày (đầu ngày, múi giờ của người dùng), lưu dạng UTC.
 - Mọi thay đổi ở file này phải có unit test. Test bắt buộc: chuỗi Good cho interval 1, 6, 15, 38; Easy đưa ef lên 2.6; Hard đưa ef xuống 2.36; Again reset `n`; `ef` không dưới 1.3.
