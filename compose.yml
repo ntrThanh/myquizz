@@ -1,0 +1,108 @@
+# Định nghĩa chung. Luôn dùng kèm compose.dev.yml hoặc compose.prod.yml.
+name: quizz
+
+x-mongo-image: &mongo-image mongo:8.2.12
+
+services:
+  mongo:
+    image: *mongo-image
+    # Keyfile phải có quyền 400 và thuộc user mongodb; chép từ secret sang /tmp rồi mới chạy.
+    entrypoint:
+      - bash
+      - -c
+      - install -m 400 -o mongodb -g mongodb /run/secrets/mongo_keyfile /tmp/mongo-keyfile && exec docker-entrypoint.sh "$$@"
+      - --
+    command: ["mongod", "--replSet", "rs0", "--keyFile", "/tmp/mongo-keyfile", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?}
+    secrets:
+      - mongo_keyfile
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--norc", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # Một lần: khởi tạo replica set + user của app. Chạy lại không sao.
+  mongo-init:
+    image: *mongo-image
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_DB: ${MONGODB_DB:?}
+      MONGO_APP_USER: ${MONGO_APP_USER:?}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?}
+      MONGO_ROOT_USER: ${MONGO_ROOT_USER:?}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?}
+    entrypoint:
+      - bash
+      - -c
+      - exec mongosh --quiet --norc "mongodb://mongo:27017/admin?directConnection=true" -u "$$MONGO_ROOT_USER" -p "$$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --file /scripts/init-replica.js
+    volumes:
+      - ./docker/mongo/init-replica.js:/scripts/init-replica.js:ro
+    networks: [backend]
+    restart: "no"
+
+  # Một lần: chạy migration bằng chính image của app, trước khi app khởi động.
+  migrate:
+    image: ${APP_IMAGE:-quizz:local}
+    command: ["node", "migrate.cjs", "up"]
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+    environment: &app-db-env
+      NODE_ENV: production
+      MONGODB_DB: ${MONGODB_DB:?}
+      MONGODB_URI: mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGODB_DB}?replicaSet=rs0&authSource=${MONGODB_DB}
+    networks: [backend]
+    restart: "no"
+
+  app:
+    image: ${APP_IMAGE:-quizz:local}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *app-db-env
+      APP_URL: ${APP_URL:?}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks: [backend, edge]
+
+  caddy:
+    image: caddy:2.11.7
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge]
+
+networks:
+  backend:
+    internal: true
+  edge: {}
+
+volumes:
+  mongo-data:
+  mongo-config:
+  caddy-data:
+  caddy-config:
+
+secrets:
+  mongo_keyfile:
+    file: ${MONGO_KEYFILE:-./docker/mongo/keyfile}

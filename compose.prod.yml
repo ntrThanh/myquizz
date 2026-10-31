@@ -1,0 +1,34 @@
+# Prod: giới hạn tài nguyên, tự khởi động lại, xoay vòng log. Biến lấy từ file .env trên server (ngoài repo).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  mongo:
+    restart: unless-stopped
+    logging: *logging
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1536M }
+
+  mongo-init:
+    logging: *logging
+
+  migrate:
+    logging: *logging
+
+  app:
+    restart: unless-stopped
+    logging: *logging
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1024M }
+
+  caddy:
+    restart: unless-stopped
+    logging: *logging
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 256M }

@@ -1,0 +1,30 @@
+# Dev: `up -d` chỉ bật Mongo (+ Redis); app chạy bằng `npm run dev` trên máy.
+# Muốn chạy cả stack trong Docker: thêm `--profile full` và `--build`.
+services:
+  mongo:
+    ports:
+      - "127.0.0.1:27017:27017"
+
+  migrate:
+    profiles: [full]
+
+  app:
+    profiles: [full]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+
+  caddy:
+    profiles: [full]
+
+  # Chưa dùng ở Giai đoạn 0; sẵn cho rate limit/cache về sau.
+  redis:
+    image: redis:8.10.3-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks: [backend]
+
+networks:
+  # Mạng internal không cho publish cổng; ở dev cần mở 127.0.0.1 cho `npm run dev`.
+  backend:
+    internal: false
