@@ -1,0 +1,30 @@
+# deps
+node_modules/
+
+# next
+.next/
+out/
+next-env.d.ts
+
+# build
+dist/
+*.tsbuildinfo
+
+# env (chỉ commit .env.example)
+.env
+.env.*
+!.env.example
+
+# test
+coverage/
+playwright-report/
+test-results/
+
+# docker secrets
+docker/mongo/keyfile
+secrets/
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
