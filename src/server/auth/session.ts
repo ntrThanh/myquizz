@@ -8,7 +8,10 @@ import { hasRole, type Actor } from "@/server/auth/roles";
 
 /** Người đang đăng nhập (đọc session từ cookie), hoặc null. Gọi nhiều lần trong một request chỉ tốn một lần. */
 export const getActor = cache(async (): Promise<Actor | null> => {
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  // headers() phải chạy trước getAuth(): nó đánh dấu trang là động nên lúc build Next không
+  // prerender (và không đòi biến môi trường).
+  const h = await headers();
+  const session = await getAuth().api.getSession({ headers: h });
   if (!session) return null;
   const u = session.user;
   const role = ROLES.includes(u.role as Role) ? (u.role as Role) : "user";
