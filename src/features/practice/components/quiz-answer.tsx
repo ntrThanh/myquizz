@@ -5,13 +5,10 @@ import type { AnswerViewProps } from "@/features/practice/components/types";
 import { useHotkeys } from "@/features/practice/components/use-hotkeys";
 
 const STATE_CLASS = {
-  idle: "border-zinc-300 bg-white hover:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-indigo-500",
-  correct:
-    "border-emerald-600 bg-emerald-50 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950 dark:text-emerald-100",
-  wrong:
-    "border-rose-600 bg-rose-50 text-rose-900 dark:border-rose-500 dark:bg-rose-950 dark:text-rose-100",
-  dimmed:
-    "border-zinc-200 bg-white text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500",
+  idle: "glass-thin hover:-translate-y-0.5 hover:outline-accent/40",
+  correct: "animate-pop bg-success/15 text-success-ink outline-success",
+  wrong: "animate-shake bg-danger/12 text-danger-ink outline-danger",
+  dimmed: "bg-fill-4 text-label-tertiary",
 } as const;
 
 const MARK = { idle: null, correct: "✓", wrong: "✗", dimmed: null } as const;
@@ -30,7 +27,7 @@ export function QuizAnswer({ question, result, onSubmit }: AnswerViewProps<QuizQ
   });
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="stagger grid gap-3 sm:grid-cols-2">
       {question.options.map((option, i) => {
         const state =
           result === null
@@ -48,12 +45,14 @@ export function QuizAnswer({ question, result, onSubmit }: AnswerViewProps<QuizQ
             // Không dùng `disabled` (trình duyệt làm nhạt màu); choose() tự bỏ qua sau khi đã chọn.
             aria-disabled={result !== null}
             lang={question.answerLang}
-            className={`flex items-center gap-3 rounded-lg border-2 px-4 py-3 text-left transition-colors ${STATE_CLASS[state]}`}
+            className={`press flex min-h-14 items-center gap-3 rounded-2xl px-4 py-3 text-left font-medium outline-2 outline-transparent -outline-offset-2 duration-300 ease-apple-out focus-visible:outline-accent ${STATE_CLASS[state]}`}
           >
-            <kbd className="text-xs opacity-60">{i + 1}</kbd>
+            <kbd className="grid size-6 shrink-0 place-items-center rounded-lg bg-fill-3 font-sans text-xs font-semibold text-label-secondary">
+              {i + 1}
+            </kbd>
             <span className="flex-1">{option}</span>
             {MARK[state] && (
-              <span aria-hidden className="font-bold">
+              <span aria-hidden className="animate-pop text-lg font-bold">
                 {MARK[state]}
               </span>
             )}

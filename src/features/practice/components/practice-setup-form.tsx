@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { fmt, getMessages } from "@/lib/i18n";
 import {
   DIRECTION_SETTINGS,
@@ -16,24 +16,33 @@ function ChoiceGroup<T extends string | number>({
   name,
   values,
   selected,
-  columns,
+  layout,
   renderLabel,
 }: {
   legend: string;
   name: keyof PracticeSettings;
   values: readonly T[];
   selected: T;
-  columns: string;
+  /** `tiles`: ô lớn có mô tả; `segmented`: thanh chọn kiểu iOS cho lựa chọn ngắn. */
+  layout: "tiles" | "segmented";
   renderLabel: (value: T) => ReactNode;
 }) {
+  const segmented = layout === "segmented";
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium">{legend}</legend>
-      <div className={`grid gap-2 ${columns}`}>
+      <legend className="mb-2 text-sm font-semibold text-label-secondary">{legend}</legend>
+      <div
+        className={segmented ? "segmented" : "grid gap-3 sm:grid-cols-2"}
+        style={segmented ? ({ "--n": values.length } as CSSProperties) : undefined}
+      >
         {values.map((value) => (
           <label
             key={value}
-            className="flex cursor-pointer flex-col rounded-lg border-2 border-zinc-200 px-4 py-3 transition-colors hover:border-indigo-300 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-500/40 dark:border-zinc-700 dark:hover:border-indigo-700 dark:has-[:checked]:border-indigo-400 dark:has-[:checked]:bg-indigo-950/50"
+            className={
+              segmented
+                ? "press flex min-h-10 cursor-pointer items-center justify-center rounded-[10px] px-2 text-center text-sm font-medium text-label-secondary has-[:checked]:text-label"
+                : "press flex cursor-pointer flex-col gap-0.5 rounded-2xl bg-fill-4 px-4 py-3.5 outline-2 outline-transparent -outline-offset-2 hover:bg-fill-3 has-[:checked]:bg-accent/12 has-[:checked]:outline-accent has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-accent/25"
+            }
           >
             <input
               type="radio"
@@ -66,18 +75,18 @@ export function PracticeSetupForm({
   const total = topics.reduce((sum, c) => sum + c.count, 0);
   const topic = topics.some((c) => c.topic === defaults.topic) ? defaults.topic : "all";
   return (
-    <Card className="p-6">
-      <h2 className="mb-5 text-lg font-semibold">{t.setupTitle}</h2>
+    <Card className="p-6 sm:p-8">
+      <h2 className="mb-6 text-xl font-semibold tracking-tight">{t.setupTitle}</h2>
       <form action={routes.practice} className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <label htmlFor="topic" className="text-sm font-medium">
+          <label htmlFor="topic" className="text-sm font-semibold text-label-secondary">
             {t.topic}
           </label>
           <select
             id="topic"
             name="topic"
             defaultValue={topic}
-            className={`${inputClass} sm:max-w-sm`}
+            className={`${inputClass} cursor-pointer sm:max-w-sm`}
           >
             <option value="all">{fmt(t.allTopics, { count: total })}</option>
             {topics.map((c) => (
@@ -92,11 +101,11 @@ export function PracticeSetupForm({
           name="mode"
           values={PRACTICE_MODES}
           selected={defaults.mode}
-          columns="sm:grid-cols-2"
+          layout="tiles"
           renderLabel={(mode) => (
             <>
-              <span className="font-medium">{t.modes[mode].title}</span>
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              <span className="font-semibold">{t.modes[mode].title}</span>
+              <span className="text-sm text-label-secondary">
                 {fmt(t.modes[mode].desc, { count: QUIZ_OPTION_COUNT })}
               </span>
             </>
@@ -107,20 +116,18 @@ export function PracticeSetupForm({
           name="direction"
           values={DIRECTION_SETTINGS}
           selected={defaults.direction}
-          columns="grid-cols-1 sm:grid-cols-3"
-          renderLabel={(d) => <span className="font-medium">{t.directions[d]}</span>}
+          layout="segmented"
+          renderLabel={(d) => t.directions[d]}
         />
         <ChoiceGroup
           legend={t.count}
           name="count"
           values={QUESTION_COUNTS}
           selected={defaults.count}
-          columns="grid-cols-3"
-          renderLabel={(n) => (
-            <span className="text-center font-medium">{fmt(t.countOption, { count: n })}</span>
-          )}
+          layout="segmented"
+          renderLabel={(n) => fmt(t.countOption, { count: n })}
         />
-        <Button type="submit" className="self-start px-6 py-2.5 text-base">
+        <Button type="submit" className="self-start px-7 py-3 text-base">
           {t.start}
         </Button>
       </form>

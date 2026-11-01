@@ -4,10 +4,10 @@ import { Card } from "@/components/ui";
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <Card className="p-4">
-      <p className="text-xs font-medium tracking-wide text-zinc-500 uppercase">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      {hint && <p className="text-xs text-zinc-500">{hint}</p>}
+    <Card className="p-4 sm:p-5">
+      <p className="text-xs font-semibold tracking-wide text-label-secondary uppercase">{label}</p>
+      <p className="mt-1.5 text-3xl font-bold tracking-tight tabular-nums">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-label-secondary">{hint}</p>}
     </Card>
   );
 }
@@ -15,7 +15,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 export function StatsOverview({ stats }: { stats: PracticeStats }) {
   const t = getMessages().practice.stats;
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
       <Stat
         label={t.learnedWords}
         value={`${stats.learnedWords}/${stats.totalWords}`}

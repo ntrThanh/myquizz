@@ -10,7 +10,12 @@ const t = getMessages().practice;
 
 export function TypingAnswer({ question, result, onSubmit }: AnswerViewProps<TypingQuestion>) {
   const [value, setValue] = useState("");
-  const tone = result === null ? "" : result.correct ? "border-emerald-500" : "border-rose-500";
+  const tone =
+    result === null
+      ? ""
+      : result.correct
+        ? "animate-pop shadow-[inset_0_0_0_2px_var(--green)]! text-success-ink"
+        : "animate-shake shadow-[inset_0_0_0_2px_var(--red)]! text-danger-ink";
 
   return (
     <form
@@ -35,10 +40,10 @@ export function TypingAnswer({ question, result, onSubmit }: AnswerViewProps<Typ
         spellCheck={false}
         lang={question.answerLang}
         placeholder={t.placeholder[question.answerLang]}
-        className={`${inputClass} flex-1 ${tone}`}
+        className={`${inputClass} flex-1 py-3.5 text-lg ${tone}`}
       />
       {result === null && (
-        <Button type="submit" className="py-2.5">
+        <Button type="submit" className="px-6 py-3 text-base">
           {t.check}
         </Button>
       )}

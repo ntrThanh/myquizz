@@ -1,9 +1,48 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { fmt, getMessages } from "@/lib/i18n";
 import type { Question } from "@/lib/practice/questions";
 import { Button, ButtonLink, Card } from "@/components/ui";
+
+const RING_RADIUS = 52;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+
+/** Vòng tròn tỉ lệ đúng, tự vẽ từ 0 khi hiện ra. */
+function ScoreRing({ ratio }: { ratio: number }) {
+  const color = ratio >= 0.8 ? "var(--green)" : ratio >= 0.5 ? "var(--accent)" : "var(--orange)";
+  return (
+    <div className="relative size-36">
+      <svg viewBox="0 0 120 120" className="size-full -rotate-90" aria-hidden>
+        <circle
+          cx="60"
+          cy="60"
+          r={RING_RADIUS}
+          fill="none"
+          strokeWidth="10"
+          stroke="var(--fill-3)"
+        />
+        <circle
+          cx="60"
+          cy="60"
+          r={RING_RADIUS}
+          fill="none"
+          strokeWidth="10"
+          strokeLinecap="round"
+          stroke={color}
+          strokeDasharray={RING_LENGTH}
+          strokeDashoffset={RING_LENGTH * (1 - ratio)}
+          className="animate-ring"
+          style={{ "--ring-length": RING_LENGTH } as CSSProperties}
+        />
+      </svg>
+      <span className="absolute inset-0 grid place-items-center text-3xl font-bold tracking-tight tabular-nums">
+        {Math.round(ratio * 100)}%
+      </span>
+    </div>
+  );
+}
 
 /** Màn hình cuối lượt: điểm và danh sách câu làm sai. */
 export function SessionResult({
@@ -19,24 +58,28 @@ export function SessionResult({
 }) {
   const router = useRouter();
   const t = getMessages().practice;
+  const correct = total - wrong.length;
   return (
-    <Card className="mx-auto flex w-full max-w-xl flex-col gap-4 p-6">
-      <h2 className="text-xl font-semibold">{t.resultTitle}</h2>
-      <p className="text-3xl font-bold tabular-nums">
-        {fmt(t.score, { correct: total - wrong.length, total })}
-      </p>
+    <Card className="stagger mx-auto flex w-full max-w-xl flex-col gap-5 p-6 sm:p-8">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <h2 className="text-xl font-semibold tracking-tight">{t.resultTitle}</h2>
+        <ScoreRing ratio={total === 0 ? 0 : correct / total} />
+        <p className="text-lg font-semibold text-label-secondary tabular-nums">
+          {fmt(t.score, { correct, total })}
+        </p>
+      </div>
       <div>
-        <h3 className="mb-2 font-medium">{t.wrongList}</h3>
+        <h3 className="mb-2 font-semibold">{t.wrongList}</h3>
         {wrong.length === 0 ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.allCorrect}</p>
+          <p className="text-sm text-label-secondary">{t.allCorrect}</p>
         ) : (
-          <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+          <ul className="stagger divide-y divide-separator overflow-hidden rounded-2xl bg-fill-4">
             {wrong.map((q) => (
-              <li key={q.wordId} className="flex justify-between gap-3 px-3 py-2 text-sm">
+              <li key={q.wordId} className="flex justify-between gap-3 px-4 py-2.5 text-sm">
                 <span className="font-medium" lang={q.promptLang}>
                   {q.prompt}
                 </span>
-                <span className="text-right text-zinc-600 dark:text-zinc-400" lang={q.answerLang}>
+                <span className="text-right text-label-secondary" lang={q.answerLang}>
                   {q.answer}
                 </span>
               </li>
@@ -44,9 +87,10 @@ export function SessionResult({
           </ul>
         )}
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
         <Button
           autoFocus
+          className="px-6"
           onClick={() => {
             onRestart();
             router.refresh(); // lấy bộ câu hỏi mới từ server
@@ -54,7 +98,7 @@ export function SessionResult({
         >
           {t.again}
         </Button>
-        <ButtonLink href={settingsHref} variant="secondary">
+        <ButtonLink href={settingsHref} variant="secondary" className="px-6">
           {t.changeSettings}
         </ButtonLink>
       </div>

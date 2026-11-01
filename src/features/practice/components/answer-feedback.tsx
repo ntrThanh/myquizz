@@ -16,8 +16,11 @@ export function AnswerFeedback({ question, result }: { question: Question; resul
         </Alert>
       )}
       {(question.ipa || question.example) && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400" lang="en">
-          <strong>{question.word}</strong>
+        <p
+          className="animate-rise px-1 text-sm text-label-secondary [animation-delay:80ms]"
+          lang="en"
+        >
+          <strong className="text-label">{question.word}</strong>
           {question.ipa && ` ${question.ipa}`}
           {question.example && <em className="block">{question.example}</em>}
         </p>
