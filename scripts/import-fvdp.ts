@@ -11,7 +11,8 @@ import { parseEntry } from "./fvdp/parse";
 //
 // Idempotent: upsert theo `word`, nên chạy lại không nhân đôi. Từ đã có sẵn không bị ghi đè,
 // trừ từ do chính script này nạp mà chưa ai đụng tới (vẫn draft, `updatedAt` = `createdAt`): những
-// từ đó được cập nhật theo cách phân tích mới nhất. Từ editor đã sửa hoặc đã đăng thì giữ nguyên.
+// từ đó được cập nhật nghĩa/ví dụ theo cách phân tích mới nhất (chủ đề giữ nguyên, vì có thể đã
+// được gán thêm bằng `db:assign-topics`). Từ editor đã sửa hoặc đã đăng thì giữ nguyên.
 
 const SOURCE = "fvdp";
 const SOURCE_NAME = "FVDP%";
@@ -71,7 +72,7 @@ async function importFile(db: Db, file: string) {
         stats.skipped++;
         continue;
       }
-      const { example, ...fields } = parsed;
+      const { example, topic, ...fields } = parsed;
       batch.push({
         updateOne: {
           filter: {
@@ -90,7 +91,9 @@ async function importFile(db: Db, file: string) {
           filter: { word: parsed.word },
           update: {
             $setOnInsert: {
-              ...parsed,
+              ...fields,
+              ...(example ? { example } : {}),
+              topics: [topic],
               status: "draft",
               source: SOURCE,
               createdAt: now,
@@ -100,7 +103,7 @@ async function importFile(db: Db, file: string) {
           upsert: true,
         },
       });
-      topics.set(parsed.topic, (topics.get(parsed.topic) ?? 0) + 1);
+      topics.set(topic, (topics.get(topic) ?? 0) + 1);
       if (batch.length >= BATCH_SIZE * 2) await flush();
     }
     await flush();
