@@ -7,16 +7,34 @@ const wordId = "a".repeat(24);
 describe("parsePracticeSettings", () => {
   it("đọc cài đặt hợp lệ từ searchParams", () => {
     expect(
-      parsePracticeSettings({ mode: "typing", direction: "mixed", count: "20", topic: "medicine" }),
-    ).toEqual({ mode: "typing", direction: "mixed", count: 20, topic: "medicine" });
+      parsePracticeSettings({
+        mode: "typing",
+        direction: "mixed",
+        count: "20",
+        topic: "medicine",
+        lesson: "3",
+      }),
+    ).toEqual({ mode: "typing", direction: "mixed", count: 20, topic: "medicine", lesson: 3 });
   });
 
   it("giá trị thiếu hoặc sai thì dùng mặc định", () => {
     expect(parsePracticeSettings({})).toEqual(DEFAULT_PRACTICE_SETTINGS);
     expect(parsePracticeSettings(undefined)).toEqual(DEFAULT_PRACTICE_SETTINGS);
     expect(
-      parsePracticeSettings({ mode: "flashcard", direction: "fr-vi", count: "999", topic: "food" }),
+      parsePracticeSettings({
+        mode: "flashcard",
+        direction: "fr-vi",
+        count: "999",
+        topic: "food",
+        lesson: "0",
+      }),
     ).toEqual(DEFAULT_PRACTICE_SETTINGS);
+  });
+
+  it("số bài phải là số nguyên dương", () => {
+    expect(parsePracticeSettings({ lesson: "2.5" }).lesson).toBeNull();
+    expect(parsePracticeSettings({ lesson: "-1" }).lesson).toBeNull();
+    expect(parsePracticeSettings({ lesson: "abc" }).lesson).toBeNull();
   });
 
   it("tham số lặp lại thì lấy giá trị đầu", () => {
@@ -24,7 +42,7 @@ describe("parsePracticeSettings", () => {
   });
 
   it("query tạo ra đọc lại được đúng cài đặt", () => {
-    const s = { mode: "typing", direction: "vi-en", count: 30, topic: "law" } as const;
+    const s = { mode: "typing", direction: "vi-en", count: 30, topic: "law", lesson: 2 } as const;
     const query = Object.fromEntries(new URLSearchParams(practiceSettingsQuery(s)));
     expect(parsePracticeSettings(query)).toEqual(s);
   });

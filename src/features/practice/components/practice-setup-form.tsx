@@ -8,8 +8,7 @@ import {
   type PracticeSettings,
 } from "@/lib/practice/config";
 import { routes } from "@/lib/routes";
-import type { TopicCount } from "@/server/dal/practice";
-import { Button, Card, inputClass } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 
 function ChoiceGroup<T extends string | number>({
   legend,
@@ -60,42 +59,17 @@ function ChoiceGroup<T extends string | number>({
 }
 
 /**
- * Chọn chủ đề, chế độ, chiều hỏi, số câu rồi mở trang luyện tập (form GET, không cần JavaScript).
- * `topics`: các chủ đề đang có từ published.
+ * Chọn chế độ (gõ đáp án / trắc nghiệm), chiều hỏi, số câu rồi mở trang luyện tập (form GET,
+ * không cần JavaScript). Chủ đề và bài lấy từ `defaults`, gửi kèm dưới dạng field ẩn.
  */
-export function PracticeSetupForm({
-  defaults,
-  topics,
-}: {
-  defaults: PracticeSettings;
-  topics: TopicCount[];
-}) {
+export function PracticeSetupForm({ defaults }: { defaults: PracticeSettings }) {
   const t = getMessages().practice;
-  const topicLabels = getMessages().topics;
-  const total = topics.reduce((sum, c) => sum + c.count, 0);
-  const topic = topics.some((c) => c.topic === defaults.topic) ? defaults.topic : "all";
   return (
     <Card className="p-6 sm:p-8">
       <h2 className="mb-6 text-xl font-semibold tracking-tight">{t.setupTitle}</h2>
       <form action={routes.practice} className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="topic" className="text-sm font-semibold text-label-secondary">
-            {t.topic}
-          </label>
-          <select
-            id="topic"
-            name="topic"
-            defaultValue={topic}
-            className={`${inputClass} cursor-pointer sm:max-w-sm`}
-          >
-            <option value="all">{fmt(t.allTopics, { count: total })}</option>
-            {topics.map((c) => (
-              <option key={c.topic} value={c.topic}>
-                {fmt(t.topicOption, { topic: topicLabels[c.topic], count: c.count })}
-              </option>
-            ))}
-          </select>
-        </div>
+        <input type="hidden" name="topic" value={defaults.topic} />
+        {defaults.lesson !== null && <input type="hidden" name="lesson" value={defaults.lesson} />}
         <ChoiceGroup
           legend={t.mode}
           name="mode"

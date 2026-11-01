@@ -14,6 +14,7 @@ import {
   type Question,
   type VocabEntry,
 } from "@/lib/practice/questions";
+import { countPerLesson, lessonCount, lessonSlice } from "@/lib/practice/lessons";
 import { shuffle } from "@/lib/random";
 import { TOPICS, type Topic } from "@/lib/topics";
 import { INITIAL_SM2, qualityFromAnswer, review } from "@/lib/sm2";
@@ -23,8 +24,11 @@ import { getMongoClient } from "@/server/db/client";
 import { collections, type WordDoc } from "@/server/db/collections";
 import { NotFoundError, toObjectId } from "@/server/dal/common";
 
-// Luyện tập trên từ vựng đã published (mọi chủ đề hoặc một chủ đề). Tiến độ SM-2 của từng người được tạo ở lần trả lời
-// đầu tiên. Mọi truy vấn tiến độ đều lọc theo actor.id lấy từ session.
+// Luyện tập trên từ vựng đã published: mọi chủ đề, một chủ đề, hoặc một bài trong chủ đề. Tiến độ
+// SM-2 của từng người được tạo ở lần trả lời đầu tiên. Mọi truy vấn tiến độ đều lọc theo actor.id
+// lấy từ session.
+//
+// Một từ tính là "đã thuộc" khi lần trả lời gần nhất đúng (SM-2 `n >= 1`).
 
 const PUBLISHED = { status: "published" as const };
 
@@ -43,7 +47,7 @@ function endOfToday(actor: Actor, now = new Date()) {
 }
 
 function wordFilter(topic: TopicSetting): Filter<WordDoc> {
-  return topic === "all" ? PUBLISHED : { ...PUBLISHED, topic };
+  return topic === "all" ? PUBLISHED : { ...PUBLISHED, topics: topic };
 }
 
 /** Chỉ giữ tiến độ của những từ còn khớp bộ lọc (published, đúng chủ đề). */
@@ -68,13 +72,48 @@ function onlyMatchingWords(filter: Filter<WordDoc>): Document[] {
  */
 const FRESH_SAMPLE_FACTOR = 10;
 
+const LEARNED = { n: { $gte: 1 } };
+
+/** Thứ tự cho từ chưa có `topicRanks` (thêm tay): xếp sau mọi từ có thứ tự. */
+const UNRANKED = Number.MAX_SAFE_INTEGER;
+
+/** Id các từ published của chủ đề, theo thứ tự học (`topicRanks`, rồi thời gian tạo). */
+async function topicWordIds(topic: Topic): Promise<ObjectId[]> {
+  const docs = await collections
+    .words()
+    .aggregate<{ _id: ObjectId }>([
+      { $match: { ...PUBLISHED, topics: topic } },
+      { $addFields: { rank: { $ifNull: [`$topicRanks.${topic}`, UNRANKED] } } },
+      { $sort: { rank: 1, _id: 1 } },
+      { $project: { _id: 1 } },
+    ])
+    .toArray();
+  return docs.map((d) => d._id);
+}
+
+/** Trong `wordIds`, những từ người này đã thuộc. */
+async function learnedAmong(userId: ObjectId, wordIds: ObjectId[]): Promise<Set<string>> {
+  if (wordIds.length === 0) return new Set();
+  const docs = await collections
+    .userWordProgress()
+    .find({ userId, wordId: { $in: wordIds }, ...LEARNED }, { projection: { wordId: 1 } })
+    .toArray();
+  return new Set(docs.map((d) => d.wordId.toHexString()));
+}
+
+/** Bộ lọc từ cho một lượt luyện: theo bài nếu có, không thì theo chủ đề. */
+async function practiceFilter(settings: PracticeSettings): Promise<Filter<WordDoc>> {
+  if (settings.topic === "all" || settings.lesson === null) return wordFilter(settings.topic);
+  const ids = lessonSlice(await topicWordIds(settings.topic), settings.lesson);
+  return { ...PUBLISHED, _id: { $in: ids } };
+}
+
 /**
  * Chọn từ để luyện, theo thứ tự ưu tiên: từ đến hạn ôn → từ chưa học → từ đã học bất kỳ.
- * Chỉ lấy từ published thuộc chủ đề đã chọn.
+ * Chỉ lấy từ khớp `filter` (published, đúng chủ đề/bài).
  */
-async function pickWords(actor: Actor, count: number, topic: TopicSetting): Promise<WordDoc[]> {
+async function pickWords(actor: Actor, count: number, filter: Filter<WordDoc>): Promise<WordDoc[]> {
   const userId = new ObjectId(actor.id);
-  const filter = wordFilter(topic);
   const picked: ObjectId[] = [];
 
   const due = await collections
@@ -94,7 +133,8 @@ async function pickWords(actor: Actor, count: number, topic: TopicSetting): Prom
     const fresh = await collections
       .words()
       .aggregate<{ _id: ObjectId }>([
-        { $match: { ...filter, _id: { $nin: picked } } },
+        // $and (không spread) để không ghi đè điều kiện `_id` của bộ lọc theo bài.
+        { $match: { $and: [filter, { _id: { $nin: picked } }] } },
         { $sample: { size: need * FRESH_SAMPLE_FACTOR } },
         {
           $lookup: {
@@ -129,7 +169,7 @@ async function pickWords(actor: Actor, count: number, topic: TopicSetting): Prom
   if (picked.length === 0) return [];
   return collections
     .words()
-    .find({ ...filter, _id: { $in: picked } })
+    .find({ $and: [filter, { _id: { $in: picked } }] })
     .toArray();
 }
 
@@ -145,31 +185,123 @@ async function distractorPool(topic: TopicSetting): Promise<VocabEntry[]> {
   return words.map(toEntry);
 }
 
-export interface TopicCount {
+export interface TopicProgress {
   topic: Topic;
-  count: number;
+  /** Số từ published của chủ đề. */
+  total: number;
+  /** Số từ trong đó người này đã thuộc. */
+  learned: number;
+  lessons: number;
 }
 
-/** Các chủ đề đang có từ published (theo thứ tự trong TOPICS), kèm số từ. */
-export async function listPracticeTopics(actor: Actor | null): Promise<TopicCount[]> {
+/**
+ * Các chủ đề đang có từ published (theo thứ tự trong TOPICS), kèm số từ, số bài và tiến độ của
+ * người xem. Một từ thuộc nhiều chủ đề được đếm ở mỗi chủ đề.
+ */
+export async function listTopicProgress(actor: Actor | null): Promise<TopicProgress[]> {
   assertUser(actor);
-  const groups = await collections
-    .words()
-    .aggregate<{ _id: Topic; count: number }>([
-      { $match: PUBLISHED },
-      { $group: { _id: "$topic", count: { $sum: 1 } } },
-    ])
-    .toArray();
-  const counts = new Map(groups.map((g) => [g._id, g.count]));
+  const userId = new ObjectId(actor.id);
+  const [totals, learned] = await Promise.all([
+    collections
+      .words()
+      .aggregate<{ _id: Topic; count: number }>([
+        { $match: PUBLISHED },
+        { $unwind: "$topics" },
+        { $group: { _id: "$topics", count: { $sum: 1 } } },
+      ])
+      .toArray(),
+    collections
+      .userWordProgress()
+      .aggregate<{ _id: Topic; count: number }>([
+        { $match: { userId, ...LEARNED } },
+        {
+          $lookup: {
+            from: "words",
+            localField: "wordId",
+            foreignField: "_id",
+            pipeline: [{ $match: PUBLISHED }, { $project: { topics: 1 } }],
+            as: "word",
+          },
+        },
+        { $unwind: "$word" },
+        { $unwind: "$word.topics" },
+        { $group: { _id: "$word.topics", count: { $sum: 1 } } },
+      ])
+      .toArray(),
+  ]);
+  const totalBy = new Map(totals.map((g) => [g._id, g.count]));
+  const learnedBy = new Map(learned.map((g) => [g._id, g.count]));
   return TOPICS.flatMap((topic) => {
-    const count = counts.get(topic);
-    return count ? [{ topic, count }] : [];
+    const total = totalBy.get(topic);
+    if (!total) return [];
+    return [{ topic, total, learned: learnedBy.get(topic) ?? 0, lessons: lessonCount(total) }];
+  });
+}
+
+export interface LessonProgress {
+  lesson: number;
+  total: number;
+  learned: number;
+}
+
+/** Các bài của một chủ đề kèm tiến độ của người xem. Chủ đề chưa có từ published thì rỗng. */
+export async function listTopicLessons(
+  actor: Actor | null,
+  topic: Topic,
+): Promise<LessonProgress[]> {
+  assertUser(actor);
+  const ids = await topicWordIds(topic);
+  const learned = await learnedAmong(new ObjectId(actor.id), ids);
+  return countPerLesson(ids, (id) => learned.has(id.toHexString())).map((c, i) => ({
+    lesson: i + 1,
+    total: c.total,
+    learned: c.matched,
+  }));
+}
+
+export interface LessonWord {
+  id: string;
+  word: string;
+  meaningVi: string;
+  ipa: string | null;
+  learned: boolean;
+}
+
+/** Danh sách từ của một bài (theo thứ tự học); bài không tồn tại thì báo NotFound. */
+export async function getLessonWords(
+  actor: Actor | null,
+  topic: Topic,
+  lesson: number,
+): Promise<LessonWord[]> {
+  assertUser(actor);
+  const ids = lessonSlice(await topicWordIds(topic), lesson);
+  if (ids.length === 0) throw new NotFoundError("Bài");
+  const [docs, learned] = await Promise.all([
+    collections
+      .words()
+      .find({ _id: { $in: ids } })
+      .toArray(),
+    learnedAmong(new ObjectId(actor.id), ids),
+  ]);
+  const byId = new Map(docs.map((w) => [w._id.toHexString(), w]));
+  return ids.flatMap((oid) => {
+    const w = byId.get(oid.toHexString());
+    if (!w) return [];
+    return [
+      {
+        id: w._id.toHexString(),
+        word: w.word,
+        meaningVi: w.meaningVi,
+        ipa: w.ipa ?? null,
+        learned: learned.has(w._id.toHexString()),
+      },
+    ];
   });
 }
 
 export type PracticeSession =
   | { status: "ready"; questions: Question[] }
-  /** Chưa có từ nào published (trong chủ đề đã chọn). */
+  /** Chưa có từ nào published (trong chủ đề/bài đã chọn). */
   | { status: "noWords" }
   /** Có từ nhưng không đủ để tạo phương án nhiễu cho trắc nghiệm. */
   | { status: "notEnoughWords" };
@@ -179,8 +311,9 @@ export async function getPracticeSession(
   settings: PracticeSettings,
 ): Promise<PracticeSession> {
   assertUser(actor);
+  const filter = await practiceFilter(settings);
   const [words, pool] = await Promise.all([
-    pickWords(actor, settings.count, settings.topic),
+    pickWords(actor, settings.count, filter),
     modeNeedsPool(settings.mode) ? distractorPool(settings.topic) : Promise.resolve([]),
   ]);
   if (words.length === 0) return { status: "noWords" };

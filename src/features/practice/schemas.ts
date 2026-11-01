@@ -10,6 +10,9 @@ import {
 } from "@/lib/practice/config";
 import { objectIdSchema } from "@/lib/validation";
 
+/** Chặn số bài vô lý trên URL; bài vượt quá số bài thật của chủ đề thì DAL trả về rỗng. */
+const MAX_LESSON = 10_000;
+
 /** searchParams có thể là mảng khi lặp tham số (`?mode=a&mode=b`): lấy giá trị đầu. */
 const first = (v: unknown) => (Array.isArray(v) ? v[0] : v);
 
@@ -21,19 +24,23 @@ export const practiceSettingsSchema = z.object({
     .preprocess(first, z.coerce.number().pipe(z.literal(QUESTION_COUNTS)))
     .catch(DEFAULTS.count),
   topic: z.preprocess(first, z.enum(TOPIC_SETTINGS)).catch(DEFAULTS.topic),
+  lesson: z
+    .preprocess(first, z.coerce.number().int().min(1).max(MAX_LESSON).nullable())
+    .catch(DEFAULTS.lesson),
 });
 
 export function parsePracticeSettings(searchParams: unknown): PracticeSettings {
   return practiceSettingsSchema.parse(searchParams ?? {});
 }
 
-/** Chuỗi query để mở lại đúng cài đặt: `mode=quiz&direction=en-vi&count=10&topic=all`. */
+/** Chuỗi query để mở lại đúng cài đặt: `mode=quiz&direction=en-vi&count=10&topic=work&lesson=2`. */
 export function practiceSettingsQuery(settings: PracticeSettings): string {
   return new URLSearchParams({
     mode: settings.mode,
     direction: settings.direction,
     count: String(settings.count),
     topic: settings.topic,
+    ...(settings.lesson === null ? {} : { lesson: String(settings.lesson) }),
   }).toString();
 }
 

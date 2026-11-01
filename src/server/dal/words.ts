@@ -23,7 +23,7 @@ export interface WordInput {
   meaningVi: string;
   ipa: string;
   example: string;
-  topic: Topic;
+  topics: Topic[];
   status: ContentStatus;
 }
 
@@ -39,7 +39,7 @@ function toRow(w: WordDoc): WordRow {
     meaningVi: w.meaningVi,
     ipa: w.ipa ?? "",
     example: w.example ?? "",
-    topic: w.topic,
+    topics: w.topics,
     status: w.status,
     updatedAt: w.updatedAt,
   };
@@ -47,12 +47,20 @@ function toRow(w: WordDoc): WordRow {
 
 const OPTIONAL_FIELDS = ["ipa", "example"] as const;
 
+/** So sánh field; mảng chủ đề so như tập hợp (thứ tự không quan trọng). */
+function sameValue(a: WordInput[keyof WordInput], b: WordInput[keyof WordInput]): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((x) => b.includes(x));
+  }
+  return a === b;
+}
+
 /** Field tùy chọn để trống thì không lưu (thay vì lưu chuỗi rỗng). */
 function toFields(input: WordInput) {
-  const set: Pick<WordDoc, "word" | "meaningVi" | "topic" | "status" | "ipa" | "example"> = {
+  const set: Pick<WordDoc, "word" | "meaningVi" | "topics" | "status" | "ipa" | "example"> = {
     word: input.word,
     meaningVi: input.meaningVi,
-    topic: input.topic,
+    topics: input.topics,
     status: input.status,
   };
   const unset: Partial<Record<(typeof OPTIONAL_FIELDS)[number], "">> = {};
@@ -72,7 +80,7 @@ export async function listWords(
   const q = input.query?.trim();
   const filter: Filter<WordDoc> = {
     ...(input.status ? { status: input.status } : {}),
-    ...(input.topic ? { topic: input.topic } : {}),
+    ...(input.topic ? { topics: input.topic } : {}),
     ...(q
       ? {
           $or: [
@@ -124,7 +132,7 @@ export async function createWord(actor: Actor | null, input: WordInput): Promise
         actor,
         "word.create",
         { type: "word", id: _id.toHexString() },
-        { word: input.word, topic: input.topic, status: input.status },
+        { word: input.word, topics: input.topics, status: input.status },
         session,
       );
     });
@@ -147,7 +155,7 @@ export async function updateWord(actor: Actor | null, id: string, input: WordInp
       if (!current) throw new NotFoundError("Từ");
       const before = toRow(current);
       const changed = (Object.keys(input) as (keyof WordInput)[]).filter(
-        (k) => before[k] !== input[k],
+        (k) => !sameValue(before[k], input[k]),
       );
       if (changed.length === 0) return;
 

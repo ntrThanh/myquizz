@@ -45,14 +45,14 @@ export async function insertUser(actor: Actor) {
 }
 
 /** `published` từ published (`w0`, `w1`…) và `draft` từ draft (`d0`, `d1`…), cùng một chủ đề. */
-export async function seedWords(published = 5, draft = 2, topic: Topic = "general") {
+export async function seedWords(published = 5, draft = 2, topics: Topic[] = ["general"]) {
   const now = new Date();
   const words = (n: number, prefix: string, status: "published" | "draft") =>
     Array.from({ length: n }, (_, i) => ({
       _id: new ObjectId(),
       word: `${prefix}${i}`,
       meaningVi: `nghĩa ${prefix}${i}`,
-      topic,
+      topics,
       status,
       createdAt: now,
       updatedAt: now,

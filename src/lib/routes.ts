@@ -7,6 +7,8 @@ export const routes = {
   register: "/register",
   learn: "/learn",
   practice: "/learn/practice",
+  topic: (topic: string) => `/learn/topics/${topic}`,
+  lesson: (topic: string, lesson: number) => `/learn/topics/${topic}/${lesson}`,
   admin: "/admin",
   adminWords: "/admin/words",
   adminNewWord: "/admin/words/new",

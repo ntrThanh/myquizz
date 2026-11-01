@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { updateWordSchema, WORD_LIMITS, wordInputSchema, wordsStatusSchema } from "./schemas";
 
-const valid = { word: " cat ", meaningVi: "con mèo", topic: "general", status: "published" };
+const valid = { word: " cat ", meaningVi: "con mèo", topics: ["general"], status: "published" };
 
 describe("wordInputSchema", () => {
   it("cắt khoảng trắng, field tùy chọn mặc định rỗng", () => {
@@ -10,7 +10,7 @@ describe("wordInputSchema", () => {
       meaningVi: "con mèo",
       ipa: "",
       example: "",
-      topic: "general",
+      topics: ["general"],
       status: "published",
     });
   });
@@ -24,7 +24,13 @@ describe("wordInputSchema", () => {
     const long = "a".repeat(WORD_LIMITS.word + 1);
     expect(wordInputSchema.safeParse({ ...valid, word: long }).success).toBe(false);
     expect(wordInputSchema.safeParse({ ...valid, status: "archived" }).success).toBe(false);
-    expect(wordInputSchema.safeParse({ ...valid, topic: "food" }).success).toBe(false);
+    expect(wordInputSchema.safeParse({ ...valid, topics: ["food"] }).success).toBe(false);
+    expect(wordInputSchema.safeParse({ ...valid, topics: [] }).success).toBe(false);
+  });
+
+  it("chủ đề: bỏ trùng và sắp theo thứ tự khai báo", () => {
+    const r = wordInputSchema.parse({ ...valid, topics: ["home", "family", "home"] });
+    expect(r.topics).toEqual(["family", "home"]);
   });
 
   it("sửa từ cần id hợp lệ", () => {

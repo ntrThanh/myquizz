@@ -7,7 +7,9 @@ import { NotFoundError } from "@/server/dal/common";
 import {
   getPracticeSession,
   getStats,
-  listPracticeTopics,
+  getLessonWords,
+  listTopicLessons,
+  listTopicProgress,
   recordAnswer,
 } from "@/server/dal/practice";
 import { countUsers, listUsers, setUserRole } from "@/server/dal/users";
@@ -38,7 +40,7 @@ const newWord: WordInput = {
   meaningVi: "con mèo",
   ipa: "",
   example: "",
-  topic: "general",
+  topics: ["general"],
   status: "draft",
 };
 
@@ -99,7 +101,9 @@ describeDb("DAL: ma trận quyền", () => {
         }),
     ],
     ["getStats", userOnly, (a) => getStats(a)],
-    ["listPracticeTopics", userOnly, (a) => listPracticeTopics(a)],
+    ["listTopicProgress", userOnly, (a) => listTopicProgress(a)],
+    ["listTopicLessons", userOnly, (a) => listTopicLessons(a, "general")],
+    ["getLessonWords", userOnly, (a) => getLessonWords(a, "general", 1)],
     ["listWords", editorOnly, (a) => listWords(a)],
     ["getWord", editorOnly, (a) => getWord(a, ids.publishedIds[0]!)],
     ["countWords", editorOnly, (a) => countWords(a)],

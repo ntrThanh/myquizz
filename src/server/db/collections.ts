@@ -32,7 +32,13 @@ export interface WordDoc extends Timestamps {
   meaningVi: string;
   ipa?: string;
   example?: string;
-  topic: Topic;
+  /** Một hoặc nhiều chủ đề. (Field `topic` cũ còn trong dữ liệu, sẽ xóa ở migration sau.) */
+  topics: Topic[];
+  /**
+   * Thứ tự học trong từng chủ đề (vị trí trong danh sách soạn sẵn); dùng để chia bài. Từ không
+   * có thứ tự (thêm tay) xếp sau, theo thời gian tạo.
+   */
+  topicRanks?: Partial<Record<Topic, number>>;
   /** Nguồn khi nạp hàng loạt (ví dụ `fvdp`); không có nghĩa là thêm tay. */
   source?: string;
   status: ContentStatus;

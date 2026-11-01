@@ -18,7 +18,7 @@ export interface WordTableRow {
   word: string;
   ipa: string;
   meaningVi: string;
-  topic: Topic;
+  topics: Topic[];
   status: ContentStatus;
   /** Đã định dạng theo múi giờ của người xem ở server. */
   updated: string;
@@ -126,8 +126,8 @@ export function WordTable({ rows }: { rows: WordTableRow[] }) {
                   {w.ipa && <span className="ml-2 font-normal text-label-secondary">{w.ipa}</span>}
                 </td>
                 <td className="max-w-md px-4 py-2">{w.meaningVi}</td>
-                <td className="px-4 py-2 whitespace-nowrap text-label-secondary">
-                  {topicLabels[w.topic]}
+                <td className="px-4 py-2 text-label-secondary">
+                  {w.topics.map((topic) => topicLabels[topic]).join(", ")}
                 </td>
                 <td className="px-4 py-2">
                   <Badge tone={w.status === "draft" ? "amber" : "indigo"}>

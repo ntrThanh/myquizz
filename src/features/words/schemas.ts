@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TOPICS } from "@/lib/topics";
+import { MAX_TOPICS_PER_WORD, TOPICS } from "@/lib/topics";
 import { CONTENT_STATUSES } from "@/lib/types";
 import { MAX_BULK_WORDS } from "@/lib/words";
 import { objectIdSchema } from "@/lib/validation";
@@ -14,7 +14,12 @@ export const wordInputSchema = z.object({
   meaningVi: text(WORD_LIMITS.meaningVi).min(1),
   ipa: text(WORD_LIMITS.ipa).default(""),
   example: text(WORD_LIMITS.example).default(""),
-  topic: z.enum(TOPICS),
+  // Bỏ trùng và sắp theo thứ tự trong TOPICS để so sánh/hiển thị ổn định.
+  topics: z
+    .array(z.enum(TOPICS))
+    .min(1)
+    .max(MAX_TOPICS_PER_WORD)
+    .transform((list) => TOPICS.filter((t) => list.includes(t))),
   status: z.enum(CONTENT_STATUSES),
 });
 

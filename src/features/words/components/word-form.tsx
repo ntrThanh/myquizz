@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { getMessages } from "@/lib/i18n";
+import { fmt, getMessages } from "@/lib/i18n";
 import { routes } from "@/lib/routes";
-import { DEFAULT_TOPIC, TOPICS } from "@/lib/topics";
+import { DEFAULT_TOPIC, MAX_TOPICS_PER_WORD, TOPIC_GROUPS, type TopicGroup } from "@/lib/topics";
 import { CONTENT_STATUSES } from "@/lib/types";
 import { Alert, Button, ButtonLink, Card, inputClass } from "@/components/ui";
 import { createWordAction, updateWordAction } from "@/features/words/actions";
@@ -12,14 +12,14 @@ import { WORD_LIMITS, type WordValues } from "@/features/words/schemas";
 
 const t = getMessages().admin.word;
 const common = getMessages().common;
-const topicLabels = getMessages().topics;
+const { topics: topicLabels, topicGroups } = getMessages();
 
 const EMPTY: WordValues = {
   word: "",
   meaningVi: "",
   ipa: "",
   example: "",
-  topic: DEFAULT_TOPIC,
+  topics: [DEFAULT_TOPIC],
   status: "published",
 };
 
@@ -65,7 +65,7 @@ export function WordForm({ id, initial = EMPTY }: { id?: string; initial?: WordV
       meaningVi: String(form.get("meaningVi") ?? ""),
       ipa: String(form.get("ipa") ?? ""),
       example: String(form.get("example") ?? ""),
-      topic: String(form.get("topic") ?? ""),
+      topics: form.getAll("topics").map(String),
       status: String(form.get("status") ?? ""),
     };
     start(async () => {
@@ -127,15 +127,33 @@ export function WordForm({ id, initial = EMPTY }: { id?: string; initial?: WordV
             className={inputClass}
           />
         </Field>
-        <Field id="topic" label={t.topic}>
-          <select id="topic" name="topic" defaultValue={initial.topic} className={inputClass}>
-            {TOPICS.map((topic) => (
-              <option key={topic} value={topic}>
-                {topicLabels[topic]}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <fieldset className="flex flex-col gap-3" aria-describedby="topics-hint">
+          <legend className="text-sm font-medium">{t.topic}</legend>
+          <p id="topics-hint" className="-mt-1 text-xs text-label-secondary">
+            {fmt(t.topicsHint, { count: MAX_TOPICS_PER_WORD })}
+          </p>
+          {(Object.keys(TOPIC_GROUPS) as TopicGroup[]).map((group) => (
+            <div key={group} className="flex flex-col gap-1.5">
+              <p className="text-xs font-medium text-label-secondary uppercase">
+                {topicGroups[group]}
+              </p>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+                {TOPIC_GROUPS[group].map((topic) => (
+                  <label key={topic} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      name="topics"
+                      value={topic}
+                      defaultChecked={initial.topics.includes(topic)}
+                      className="size-4 accent-accent"
+                    />
+                    {topicLabels[topic]}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </fieldset>
         <Field id="status" label={t.status} hint={t.statusHint}>
           <select
             id="status"

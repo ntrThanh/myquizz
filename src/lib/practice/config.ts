@@ -15,7 +15,7 @@ export type Direction = (typeof DIRECTIONS)[number];
 export const DIRECTION_SETTINGS = [...DIRECTIONS, "mixed"] as const;
 export type DirectionSetting = (typeof DIRECTION_SETTINGS)[number];
 
-export const QUESTION_COUNTS = [10, 20, 30] as const;
+export const QUESTION_COUNTS = [10, 20, 30, 50] as const;
 export type QuestionCount = (typeof QUESTION_COUNTS)[number];
 
 /** Luyện một chủ đề, hoặc mọi chủ đề. */
@@ -27,6 +27,8 @@ export interface PracticeSettings {
   direction: DirectionSetting;
   count: QuestionCount;
   topic: TopicSetting;
+  /** Bài trong chủ đề (đánh số từ 1); `null` = cả chủ đề. Chỉ có nghĩa khi đã chọn chủ đề. */
+  lesson: number | null;
 }
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
@@ -34,7 +36,14 @@ export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
   direction: "en-vi",
   count: 10,
   topic: "all",
+  lesson: null,
 };
+
+/**
+ * Số từ mỗi bài. Từ của một chủ đề xếp theo thứ tự học rồi cắt thành bài: thêm từ vào cuối
+ * danh sách thì tự có bài mới, các bài cũ giữ nguyên.
+ */
+export const LESSON_SIZE = 50;
 
 /** Số phương án mỗi câu trắc nghiệm (1 đúng + còn lại là nhiễu). */
 export const QUIZ_OPTION_COUNT = 4;

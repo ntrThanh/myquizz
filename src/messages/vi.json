@@ -71,7 +71,7 @@
   },
   "practice": {
     "title": "Luyện tập",
-    "setupTitle": "Bắt đầu một lượt luyện",
+    "setupTitle": "Cách luyện",
     "mode": "Cách trả lời",
     "modes": {
       "typing": {
@@ -91,9 +91,6 @@
     },
     "count": "Số câu",
     "countOption": "{count} câu",
-    "topic": "Chủ đề",
-    "allTopics": "Tất cả chủ đề ({count} từ)",
-    "topicOption": "{topic} ({count} từ)",
     "start": "Bắt đầu",
     "stats": {
       "totalWords": "Từ vựng",
@@ -130,7 +127,20 @@
     "noWords": "Chưa có từ vựng nào để luyện.",
     "noWordsDesc": "Từ vựng sẽ được thêm dần, bạn quay lại sau nhé.",
     "notEnoughWords": "Cần ít nhất {count} từ có nghĩa khác nhau để làm trắc nghiệm.",
-    "tryTyping": "Luyện gõ đáp án"
+    "tryTyping": "Luyện gõ đáp án",
+    "topicsTitle": "Chọn chủ đề",
+    "topicsDesc": "Mỗi chủ đề chia thành nhiều bài, mỗi bài khoảng {count} từ.",
+    "topicMeta": "{lessons} bài · {words} từ",
+    "learned": "Đã thuộc {learned}/{total}",
+    "progressLabel": "Tiến độ {name}",
+    "lessonName": "{topic} {number}",
+    "lessonsTitle": "Các bài",
+    "lessonWords": "Từ trong bài",
+    "learnedBadge": "Đã thuộc",
+    "allTopicsLink": "Tất cả chủ đề",
+    "quickReview": "Ôn tập tổng hợp",
+    "quickReviewDesc": "Câu hỏi trộn từ mọi chủ đề, ưu tiên từ đến hạn ôn.",
+    "noTopics": "Chưa có chủ đề nào có từ để luyện."
   },
   "admin": {
     "title": "Quản trị",
@@ -189,11 +199,32 @@
       "selected": "Đã chọn {count} từ",
       "publishSelected": "Đăng các từ đã chọn",
       "draftSelected": "Chuyển về nháp",
-      "bulkDone": "Đã đổi trạng thái {count} từ."
+      "bulkDone": "Đã đổi trạng thái {count} từ.",
+      "topicsHint": "Chọn một hoặc nhiều chủ đề (tối đa {count})."
     }
   },
   "topics": {
-    "general": "Thông dụng",
+    "family": "Gia đình",
+    "friends": "Bạn bè & tình cảm",
+    "people": "Con người & tính cách",
+    "body-health": "Cơ thể & sức khỏe",
+    "food-drink": "Đồ ăn & đồ uống",
+    "home": "Nhà cửa",
+    "clothes": "Quần áo",
+    "shopping": "Mua sắm",
+    "school": "Trường học",
+    "work": "Công việc",
+    "travel": "Du lịch",
+    "transportation": "Giao thông",
+    "weather-nature": "Thời tiết & thiên nhiên",
+    "animals": "Động vật",
+    "sports-hobbies": "Thể thao & sở thích",
+    "music-film": "Âm nhạc & phim ảnh",
+    "technology-life": "Công nghệ",
+    "time-numbers": "Thời gian & số đếm",
+    "emotions": "Cảm xúc",
+    "daily-communication": "Giao tiếp hằng ngày",
+    "general": "Thông dụng khác",
     "economics": "Kinh tế, thương mại",
     "technology": "Kỹ thuật",
     "computing": "Tin học",
@@ -211,5 +242,9 @@
     "humanities": "Xã hội, lịch sử, tôn giáo",
     "agriculture": "Nông nghiệp",
     "specialized": "Chuyên ngành khác"
+  },
+  "topicGroups": {
+    "life": "Chủ đề đời sống",
+    "field": "Chuyên ngành"
   }
 }

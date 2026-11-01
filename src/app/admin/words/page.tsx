@@ -103,7 +103,7 @@ export default async function WordsPage({ searchParams }: PageProps<"/admin/word
             word: w.word,
             ipa: w.ipa,
             meaningVi: w.meaningVi,
-            topic: w.topic,
+            topics: w.topics,
             status: w.status,
             updated: formatDateTime(w.updatedAt, actor.timeZone),
           }))}

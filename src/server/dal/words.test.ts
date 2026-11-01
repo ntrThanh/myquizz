@@ -18,7 +18,7 @@ describeDb("DAL: quản lý từ vựng", () => {
     meaningVi: "con mèo",
     ipa: "/kæt/",
     example: "",
-    topic: "general",
+    topics: ["general"],
     status: "published",
   };
 
@@ -46,6 +46,15 @@ describeDb("DAL: quản lý từ vựng", () => {
     expect(log?.meta).toEqual({ changed: ["meaningVi", "ipa"] });
   });
 
+  it("chủ đề so như tập hợp: đổi thứ tự không tính là sửa", async () => {
+    const { id } = await createWord(editor, { ...input, topics: ["family", "home"] });
+    await updateWord(editor, id, { ...input, topics: ["home", "family"] });
+    expect(await collections.auditLogs().countDocuments({ action: "word.update" })).toBe(0);
+    await updateWord(editor, id, { ...input, topics: ["family"] });
+    const log = await collections.auditLogs().findOne({ action: "word.update" });
+    expect(log?.meta).toEqual({ changed: ["topics"] });
+  });
+
   it("sửa mà không đổi gì thì không ghi audit", async () => {
     const { id } = await createWord(editor, input);
     await updateWord(editor, id, input);
@@ -68,7 +77,7 @@ describeDb("DAL: quản lý từ vựng", () => {
 
   it("lọc theo chủ đề", async () => {
     await seedWords(2, 1);
-    await seedWords(1, 1, "medicine");
+    await seedWords(1, 1, ["medicine"]);
     expect((await listWords(editor, { topic: "medicine" })).total).toBe(2);
     expect((await listWords(editor, { topic: "medicine", status: "draft" })).total).toBe(1);
   });

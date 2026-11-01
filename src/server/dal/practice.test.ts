@@ -1,20 +1,29 @@
-import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, describeDb, makeActor, resetDb, seedWords } from "../../../test/db";
-import type { PracticeSettings } from "@/lib/practice/config";
+import { ObjectId } from "mongodb";
+import { LESSON_SIZE, type PracticeSettings } from "@/lib/practice/config";
 import { collections } from "@/server/db/collections";
 import { NotFoundError } from "@/server/dal/common";
 import {
   getPracticeSession,
   getStats,
-  listPracticeTopics,
+  getLessonWords,
+  listTopicLessons,
+  listTopicProgress,
   recordAnswer,
 } from "@/server/dal/practice";
 
 describeDb("DAL: luyện tập", () => {
   let ids: Awaited<ReturnType<typeof seedWords>>;
   const user = makeActor("user");
-  const quiz: PracticeSettings = { mode: "quiz", direction: "en-vi", count: 10, topic: "all" };
-  const typing: PracticeSettings = { mode: "typing", direction: "vi-en", count: 10, topic: "all" };
+  const quiz: PracticeSettings = {
+    mode: "quiz",
+    direction: "en-vi",
+    count: 10,
+    topic: "all",
+    lesson: null,
+  };
+  const typing: PracticeSettings = { ...quiz, mode: "typing", direction: "vi-en" };
 
   const answer = (wordId: string, correct: boolean, actor = user) =>
     recordAnswer(actor, { wordId, mode: "quiz", direction: "en-vi", correct });
@@ -65,7 +74,7 @@ describeDb("DAL: luyện tập", () => {
   });
 
   it("chọn chủ đề thì chỉ hỏi từ trong chủ đề đó, kể cả từ đến hạn ôn", async () => {
-    const medicine = await seedWords(4, 1, "medicine");
+    const medicine = await seedWords(4, 1, ["medicine"]);
     await answer(ids.publishedIds[0]!, false);
     await collections.userWordProgress().updateMany({}, { $set: { dueDate: new Date(0) } });
     const s = await getPracticeSession(user, { ...typing, topic: "medicine" });
@@ -76,13 +85,75 @@ describeDb("DAL: luyện tập", () => {
     });
   });
 
-  it("danh sách chủ đề chỉ gồm chủ đề có từ published, kèm số từ", async () => {
-    await seedWords(2, 0, "medicine");
-    await seedWords(0, 3, "law");
-    expect(await listPracticeTopics(user)).toEqual([
-      { topic: "general", count: 5 },
-      { topic: "medicine", count: 2 },
+  it("từ thuộc nhiều chủ đề xuất hiện khi luyện từng chủ đề và được đếm ở mỗi chủ đề", async () => {
+    await resetDb();
+    const both = await seedWords(1, 0, ["food-drink", "shopping"]);
+    for (const topic of ["food-drink", "shopping"] as const) {
+      const s = await getPracticeSession(user, { ...typing, topic });
+      expect(s.status === "ready" && s.questions.map((q) => q.wordId)).toEqual(both.publishedIds);
+    }
+    expect((await listTopicProgress(user)).map((p) => [p.topic, p.total])).toEqual([
+      ["food-drink", 1],
+      ["shopping", 1],
     ]);
+  });
+
+  it("tiến độ chủ đề: chỉ chủ đề có từ published, đếm từ đã thuộc của đúng người", async () => {
+    const med = await seedWords(2, 0, ["medicine"]);
+    await seedWords(0, 3, ["law"]);
+    await answer(med.publishedIds[0]!, true);
+    await answer(med.publishedIds[1]!, false); // trả lời sai: chưa thuộc
+    await answer(ids.publishedIds[0]!, true, makeActor("user", "other"));
+    expect(await listTopicProgress(user)).toEqual([
+      { topic: "general", total: 5, learned: 0, lessons: 1 },
+      { topic: "medicine", total: 2, learned: 1, lessons: 1 },
+    ]);
+  });
+
+  describe("bài trong chủ đề", () => {
+    // 60 từ chủ đề work; topicRanks đảo ngược thứ tự tạo để kiểm tra bài xếp theo thứ tự học.
+    let work: string[];
+    beforeEach(async () => {
+      work = (await seedWords(60, 0, ["work"])).publishedIds;
+      await collections.words().bulkWrite(
+        work.map((id, i) => ({
+          updateOne: {
+            filter: { _id: new ObjectId(id) },
+            update: { $set: { topicRanks: { work: 59 - i } } },
+          },
+        })),
+      );
+    });
+    const byRank = () => [...work].reverse();
+
+    it("chia theo LESSON_SIZE, theo thứ tự học; từ thêm tay (không có thứ tự) xếp cuối", async () => {
+      const extra = (await seedWords(1, 0, ["work"])).publishedIds[0]!;
+      const lessons = await listTopicLessons(user, "work");
+      expect(lessons.map((l) => l.total)).toEqual([LESSON_SIZE, 61 - LESSON_SIZE]);
+      const first = await getLessonWords(user, "work", 1);
+      expect(first.map((w) => w.id)).toEqual(byRank().slice(0, LESSON_SIZE));
+      const last = await getLessonWords(user, "work", 2);
+      expect(last.at(-1)?.id).toBe(extra);
+    });
+
+    it("tiến độ từng bài và đánh dấu từ đã thuộc", async () => {
+      const firstOfLesson2 = byRank()[LESSON_SIZE]!;
+      await answer(firstOfLesson2, true);
+      const lessons = await listTopicLessons(user, "work");
+      expect(lessons.map((l) => l.learned)).toEqual([0, 1]);
+      const words = await getLessonWords(user, "work", 2);
+      expect(words.find((w) => w.id === firstOfLesson2)?.learned).toBe(true);
+    });
+
+    it("luyện một bài chỉ hỏi từ trong bài; bài không tồn tại thì NotFound/noWords", async () => {
+      const s = await getPracticeSession(user, { ...typing, topic: "work", lesson: 2, count: 50 });
+      if (s.status !== "ready") throw new Error(s.status);
+      expect(s.questions.map((q) => q.wordId).sort()).toEqual(byRank().slice(LESSON_SIZE).sort());
+      await expect(getLessonWords(user, "work", 3)).rejects.toThrow(NotFoundError);
+      expect(await getPracticeSession(user, { ...typing, topic: "work", lesson: 3 })).toEqual({
+        status: "noWords",
+      });
+    });
   });
 
   it("lần trả lời đầu tạo tiến độ SM-2 và reviewLog", async () => {
