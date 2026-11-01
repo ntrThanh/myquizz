@@ -40,11 +40,11 @@ function Field({
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className="text-sm font-medium">
         {label}
-        {optional && <span className="font-normal text-zinc-500"> ({t.optional})</span>}
+        {optional && <span className="font-normal text-label-secondary"> ({t.optional})</span>}
       </label>
       {children}
       {hint && (
-        <p id={`${id}-hint`} className="text-xs text-zinc-500">
+        <p id={`${id}-hint`} className="text-xs text-label-secondary">
           {hint}
         </p>
       )}

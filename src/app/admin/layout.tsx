@@ -8,10 +8,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const actor = await requireActorRole("editor", routes.admin);
   const t = getMessages().admin;
   const link =
-    "rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800";
+    "press rounded-full px-3 py-1.5 text-sm font-medium text-label-secondary hover:bg-fill-4 hover:text-label";
   return (
     <div className="flex flex-col gap-6">
-      <nav className="flex flex-wrap gap-1 border-b border-zinc-200 pb-3 dark:border-zinc-800">
+      <nav className="flex flex-wrap gap-1 border-b border-separator pb-3">
         <Link className={link} href={routes.admin}>
           {t.title}
         </Link>

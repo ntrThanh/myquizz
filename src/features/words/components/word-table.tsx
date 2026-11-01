@@ -66,7 +66,7 @@ export function WordTable({ rows }: { rows: WordTableRow[] }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex min-h-10 flex-wrap items-center gap-3">
-        <span className="text-sm text-zinc-600 dark:text-zinc-400" aria-live="polite">
+        <span className="text-sm text-label-secondary" aria-live="polite">
           {fmt(t.selected, { count: visible.length })}
         </span>
         <Button
@@ -86,9 +86,9 @@ export function WordTable({ rows }: { rows: WordTableRow[] }) {
         </Button>
       </div>
       {message && <Alert tone={message.tone}>{message.text}</Alert>}
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-x-auto glass rounded-2xl">
         <table className="w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-xs text-zinc-500 uppercase dark:bg-zinc-900">
+          <thead className="bg-fill-4 text-xs text-label-secondary uppercase tracking-wide">
             <tr>
               <th className="w-10 px-4 py-2">
                 <input
@@ -96,7 +96,7 @@ export function WordTable({ rows }: { rows: WordTableRow[] }) {
                   checked={allChecked}
                   onChange={toggleAll}
                   aria-label={t.selectAll}
-                  className="size-4 accent-indigo-600"
+                  className="size-4 accent-accent"
                 />
               </th>
               <th className="px-4 py-2">{t.word}</th>
@@ -109,7 +109,7 @@ export function WordTable({ rows }: { rows: WordTableRow[] }) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <tbody className="divide-y divide-separator">
             {rows.map((w) => (
               <tr key={w.id}>
                 <td className="px-4 py-2">
@@ -118,15 +118,15 @@ export function WordTable({ rows }: { rows: WordTableRow[] }) {
                     checked={selected.has(w.id)}
                     onChange={() => toggle(w.id)}
                     aria-label={`${t.select}: ${w.word}`}
-                    className="size-4 accent-indigo-600"
+                    className="size-4 accent-accent"
                   />
                 </td>
                 <td className="px-4 py-2 font-medium" lang="en">
                   {w.word}
-                  {w.ipa && <span className="ml-2 font-normal text-zinc-500">{w.ipa}</span>}
+                  {w.ipa && <span className="ml-2 font-normal text-label-secondary">{w.ipa}</span>}
                 </td>
                 <td className="max-w-md px-4 py-2">{w.meaningVi}</td>
-                <td className="px-4 py-2 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
+                <td className="px-4 py-2 whitespace-nowrap text-label-secondary">
                   {topicLabels[w.topic]}
                 </td>
                 <td className="px-4 py-2">
@@ -134,11 +134,11 @@ export function WordTable({ rows }: { rows: WordTableRow[] }) {
                     {t.statuses[w.status]}
                   </Badge>
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap text-zinc-500">{w.updated}</td>
+                <td className="px-4 py-2 whitespace-nowrap text-label-secondary">{w.updated}</td>
                 <td className="px-4 py-2 text-right">
                   <Link
                     href={routes.adminWord(w.id)}
-                    className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                    className="font-semibold text-accent hover:underline"
                   >
                     {t.editLink}
                   </Link>

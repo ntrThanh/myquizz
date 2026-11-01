@@ -13,9 +13,9 @@ export const metadata: Metadata = { title: getMessages().admin.title };
 function Tile({ href, title, desc }: { href: string; title: string; desc: string }) {
   return (
     <Link href={href} className="group">
-      <Card className="h-full group-hover:border-indigo-400 dark:group-hover:border-indigo-500">
+      <Card className="h-full transition-transform duration-500 ease-apple-out group-hover:-translate-y-1">
         <h2 className="font-semibold">{title}</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{desc}</p>
+        <p className="mt-1 text-sm text-label-secondary">{desc}</p>
       </Card>
     </Link>
   );

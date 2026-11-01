@@ -36,9 +36,9 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
       {items.length === 0 ? (
         <EmptyState title={t.noUsers} />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-x-auto glass rounded-2xl">
           <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 uppercase dark:bg-zinc-900">
+            <thead className="bg-fill-4 text-xs text-label-secondary uppercase tracking-wide">
               <tr>
                 <th className="px-4 py-2">{t.colName}</th>
                 <th className="px-4 py-2">{t.colEmail}</th>
@@ -46,17 +46,18 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
                 <th className="px-4 py-2">{t.colCreated}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody className="divide-y divide-separator">
               {items.map((u) => (
                 <tr key={u.id}>
                   <td className="px-4 py-2">
-                    {u.name} {u.id === actor.id && <span className="text-zinc-500">{t.you}</span>}
+                    {u.name}{" "}
+                    {u.id === actor.id && <span className="text-label-secondary">{t.you}</span>}
                   </td>
                   <td className="px-4 py-2">{u.email}</td>
                   <td className="px-4 py-2">
                     <RoleSelect userId={u.id} role={u.role} disabled={u.id === actor.id} />
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-zinc-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-label-secondary">
                     {formatDateTime(u.createdAt, actor.timeZone)}
                   </td>
                 </tr>

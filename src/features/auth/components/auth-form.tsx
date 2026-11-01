@@ -59,8 +59,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     : { text: t.noAccount, label: t.submitRegister, href: routes.register };
 
   return (
-    <Card className="mx-auto w-full max-w-sm">
-      <h1 className="mb-5 text-xl font-semibold">{isRegister ? t.registerTitle : t.loginTitle}</h1>
+    <Card className="mx-auto w-full max-w-sm p-6 sm:p-8">
+      <h1 className="mb-6 text-2xl font-bold tracking-tight">
+        {isRegister ? t.registerTitle : t.loginTitle}
+      </h1>
       <form action={onSubmit} className="flex flex-col gap-4">
         {isRegister && (
           <label className="flex flex-col gap-1 text-sm font-medium">
@@ -83,20 +85,20 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             autoComplete={isRegister ? "new-password" : "current-password"}
             className={inputClass}
           />
-          {isRegister && <span className="font-normal text-zinc-500">{t.passwordHint}</span>}
+          {isRegister && <span className="font-normal text-label-secondary">{t.passwordHint}</span>}
         </label>
         {error && <Alert>{error}</Alert>}
-        <Button type="submit" disabled={pending} className="py-2.5">
+        <Button type="submit" disabled={pending} className="mt-1 py-3 text-base">
           {isRegister ? t.submitRegister : t.submitLogin}
         </Button>
       </form>
-      <p className="mt-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="mt-5 text-center text-sm text-label-secondary">
         {other.text}{" "}
         <Link
           href={
             next === routes.learn ? other.href : `${other.href}?next=${encodeURIComponent(next)}`
           }
-          className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          className="font-semibold text-accent hover:underline"
         >
           {other.label}
         </Link>

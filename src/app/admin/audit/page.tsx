@@ -20,9 +20,9 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
       {items.length === 0 ? (
         <EmptyState title={t.noAudit} />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-x-auto glass rounded-2xl">
           <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 uppercase dark:bg-zinc-900">
+            <thead className="bg-fill-4 text-xs text-label-secondary uppercase tracking-wide">
               <tr>
                 <th className="px-4 py-2">{t.colTime}</th>
                 <th className="px-4 py-2">{t.colActor}</th>
@@ -31,10 +31,10 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
                 <th className="px-4 py-2">{t.colDetail}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody className="divide-y divide-separator">
               {items.map((a) => (
                 <tr key={a.id}>
-                  <td className="px-4 py-2 whitespace-nowrap text-zinc-500">
+                  <td className="px-4 py-2 whitespace-nowrap text-label-secondary">
                     {formatDateTime(a.createdAt, actor.timeZone)}
                   </td>
                   <td className="px-4 py-2">{a.actorEmail ?? t.cli}</td>

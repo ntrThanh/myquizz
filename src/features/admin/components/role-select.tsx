@@ -40,7 +40,7 @@ export function RoleSelect({
             }
           });
         }}
-        className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900"
+        className="rounded-lg bg-field px-2 py-1 text-sm shadow-[inset_0_0_0_1px_var(--separator)] disabled:opacity-60"
       >
         {ROLES.map((r) => (
           <option key={r} value={r}>
@@ -51,7 +51,7 @@ export function RoleSelect({
       {message && (
         <span
           role="status"
-          className={`text-xs ${message.error ? "text-rose-600" : "text-emerald-600"}`}
+          className={`text-xs ${message.error ? "text-danger-ink" : "text-success-ink"}`}
         >
           {message.text}
         </span>
