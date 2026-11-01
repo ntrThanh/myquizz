@@ -17,6 +17,7 @@
     "db:migrate:down": "tsx migrations/cli.ts down",
     "build:migrate": "esbuild migrations/cli.ts --bundle --platform=node --target=node24 --format=cjs --outfile=dist/migrate.cjs --external:kerberos --external:snappy --external:@mongodb-js/zstd --external:mongodb-client-encryption --external:@aws-sdk/credential-providers --external:gcp-metadata --external:socks --external:aws4",
     "db:seed": "tsx scripts/seed.ts",
+    "db:import:fvdp": "tsx scripts/import-fvdp.ts",
     "user:set-role": "tsx scripts/set-role.ts"
   },
   "dependencies": {
