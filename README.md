@@ -1,8 +1,8 @@
 # Quizz
 
-Web app học từ vựng tiếng Anh: flashcard, quiz, ôn tập theo spaced repetition (SM-2), có khu quản trị. Xem [CLAUDE.md](CLAUDE.md) cho quy ước kiến trúc, bảo mật và lộ trình.
+Web app luyện từ vựng tiếng Anh: gõ đáp án hoặc trắc nghiệm, song ngữ Anh → Việt / Việt → Anh / trộn, lịch ôn SM-2 chạy ngầm, có khu quản trị để thêm từ dần. Xem [CLAUDE.md](CLAUDE.md) cho quy ước kiến trúc, bảo mật và lộ trình.
 
-**Trạng thái:** Giai đoạn 0 xong; Giai đoạn 1 xong phần lõi — đăng ký/đăng nhập bằng email + mật khẩu, phân quyền user/editor/admin, flashcard SM-2, quiz, gõ đáp án, thống kê, khung /admin (người dùng, nhật ký). Chưa có: đăng nhập Google, xác minh email (xem "Ghi chú và quyết định").
+**Trạng thái:** Giai đoạn 0 xong; Giai đoạn 1 đang ở **bản đơn giản** — đăng ký/đăng nhập bằng email + mật khẩu, phân quyền user/editor/admin, luyện tập (gõ đáp án, trắc nghiệm, chọn chiều hỏi và số câu), thống kê, /admin (từ vựng, người dùng, nhật ký). Khóa học/bài học và flashcard tạm bỏ, sẽ mở lại sau. Chưa có: đăng nhập Google, xác minh email (xem "Ghi chú và quyết định").
 
 ## Yêu cầu
 
@@ -18,7 +18,7 @@ cp .env.example .env               # rồi thay các mật khẩu change-me-* (d
 ./docker/scripts/gen-keyfile.sh    # keyfile cho replica set (docker/mongo/keyfile, không commit)
 docker compose -f compose.yml -f compose.dev.yml up -d   # Mongo + Redis
 npm run db:migrate
-npm run db:seed                    # dữ liệu mẫu: 2 khóa học, 34 từ
+npm run db:seed                    # dữ liệu mẫu: 34 từ
 npm run dev                        # http://localhost:3000
 ```
 
@@ -81,22 +81,36 @@ docker compose -f compose.yml -f compose.prod.yml up -d
 
 ## Trang
 
-| Đường dẫn                                                            | Ai vào được                                   |
-| -------------------------------------------------------------------- | --------------------------------------------- |
-| `/`, `/courses`, `/courses/[slug]`                                   | Mọi người (khách chỉ thấy nội dung published) |
-| `/login`, `/register`                                                | Khách (đã đăng nhập thì chuyển về `/learn`)   |
-| `/learn` (thống kê), `/learn/review`, `/learn/quiz`, `/learn/typing` | Người đã đăng nhập                            |
-| `/admin`                                                             | editor, admin                                 |
-| `/admin/users`, `/admin/audit`                                       | admin                                         |
+| Đường dẫn                                                         | Ai vào được                                 |
+| ----------------------------------------------------------------- | ------------------------------------------- |
+| Đường dẫn                                                         | Ai vào được                                 |
+| -------------------------------------------------                 | ------------------------------------------- |
+| `/`                                                               | Mọi người                                   |
+| `/login`, `/register`                                             | Khách (đã đăng nhập thì chuyển về `/learn`) |
+| `/learn` (thống kê + chọn cài đặt)                                | Người đã đăng nhập                          |
+| `/learn/practice?mode=&direction=&count=`                         | Người đã đăng nhập                          |
+| `/admin`, `/admin/words`, `/admin/words/new`, `/admin/words/[id]` | editor, admin                               |
+| `/admin/users`, `/admin/audit`                                    | admin                                       |
 
-Phím tắt: ôn flashcard `Space` lật, `1`–`4` chấm Quên/Khó/Nhớ/Dễ; quiz `1`–`4` chọn, `Enter` câu tiếp; gõ đáp án `Enter` kiểm tra, `Enter` lần nữa sang từ tiếp.
+Phím tắt: trắc nghiệm `1`–`4` chọn, `Enter` câu tiếp; gõ đáp án `Enter` kiểm tra, `Enter` lần nữa sang câu tiếp.
+
+### Luyện tập
+
+- **Chế độ** (`mode`): `typing` (gõ đáp án) hoặc `quiz` (trắc nghiệm 4 phương án). **Chiều hỏi** (`direction`): `en-vi`, `vi-en`, `mixed` (mỗi câu ngẫu nhiên một chiều). **Số câu** (`count`): 10/20/30. Danh sách lựa chọn nằm ở `src/lib/practice/config.ts`; giá trị sai trên URL thì dùng mặc định.
+- Từ được chọn theo thứ tự: đến hạn ôn (SM-2) → chưa học → đã học bất kỳ. Không cần "thêm vào danh sách học"; tiến độ được tạo ở lần trả lời đầu. Đúng = Good, sai = Again.
+- Gõ đáp án: không phân biệt hoa thường, khoảng trắng thừa. Nghĩa có nhiều cách hiểu thì nhập cách nhau bằng dấu phẩy (`cơm, gạo`); gõ đúng một nghĩa là được.
+- Thêm chế độ mới: thêm vào `PRACTICE_MODES`, thêm strategy trong `src/lib/practice/questions.ts`, thêm component nhập đáp án trong `answer-view.tsx` và nhãn trong `vi.json`.
+
+### Từ vựng
+
+Editor/admin thêm và sửa từ ở `/admin/words`; mọi thao tác ghi audit log. Không có xóa cứng (để không mất tiến độ học): chuyển về **Nháp** để ẩn khỏi luyện tập.
 
 ## Cấu trúc
 
 ```
 src/
   app/                  # App Router: (public)/, (auth)/, (app)/learn/, admin/, api/
-  features/             # theo tính năng: study/, admin/, auth/ (components, actions.ts, schemas.ts)
+  features/             # theo tính năng: practice/, words/, admin/, auth/ (components, actions.ts, schemas.ts)
   components/           # UI dùng chung
   server/               # chỉ chạy phía server (import "server-only")
     env.ts              # đọc + validate biến môi trường bằng Zod
@@ -104,7 +118,8 @@ src/
     auth/               # Better Auth, Actor + kiểm tra role, helper session
     db/                 # MongoClient, kiểu document và collection
     dal/                # nơi duy nhất được gọi MongoDB (ESLint chặn import ở chỗ khác)
-  lib/                  # code thuần dùng cả hai phía: sm2.ts, day.ts, stats.ts, i18n
+  lib/                  # code thuần dùng cả hai phía: practice/ (cấu hình, chấm, tạo câu hỏi), sm2.ts,
+                        # day.ts, stats.ts, routes.ts, i18n
   messages/vi.json      # chuỗi giao diện
   proxy.ts              # chặn sớm /learn, /admin khi chưa có cookie phiên
 migrations/             # runner, CLI, danh sách và script migration
@@ -124,7 +139,9 @@ compose*.yml
 - **Đăng nhập (tạm thời):** chỉ email + mật khẩu, **chưa xác minh email** và chưa có Google — theo yêu cầu làm bản đơn giản trước. Bật lại khi có nhà cung cấp email: `requireEmailVerification: true` trong `src/server/auth/auth.ts` + adapter `Mailer`. Giới hạn tần suất đăng nhập/đăng ký dùng bộ có sẵn của Better Auth (bộ nhớ trong, chỉ bật ở production).
 - **Role và múi giờ** là field của `users`, khai báo `input: false` nên client không gửi được khi đăng ký. Múi giờ mặc định `Asia/Ho_Chi_Minh` (chưa có trang cài đặt).
 - **`cacheComponents` tắt:** hầu hết trang đọc session nên đằng nào cũng render động.
-- **Quiz:** đáp án đúng nằm trong dữ liệu gửi xuống trình duyệt (để báo đúng/sai ngay). Chấp nhận được với app tự học; nếu sau này có kiểm tra tính điểm thì phải chấm phía server.
+- **Chấm đáp án ở client:** đáp án nằm trong dữ liệu gửi xuống trình duyệt (để báo đúng/sai ngay), client gửi lên đúng/sai. Chỉ ảnh hưởng tiến độ của chính người đó nên chấp nhận được với app tự học; nếu sau này có kiểm tra tính điểm thì phải chấm phía server.
+- **Bỏ khóa học/flashcard (2026-11-01):** theo yêu cầu làm bản đơn giản. Migration `0003` cho phép `words`/`userWordProgress` không có `courseId`/`lessonId`; dữ liệu và collection `courses`/`lessons` cũ vẫn giữ nguyên. Code cũ xem trong git (commit `2cf7d60`).
+- **Mongo `ulimits.nofile: 64000`:** giới hạn mặc định của Docker làm mongod tự dừng ("Too many open files") khi chạy test tích hợp tạo nhiều collection/index.
 - **Mục "Quản trị" trên thanh menu** ẩn ở màn hình dưới 640px (không đủ chỗ); vẫn vào được bằng đường dẫn `/admin`.
 - **`/api/health` không cần đăng nhập:** chỉ trả trạng thái kết nối DB, không đọc dữ liệu.
 - **CI:** chạy lint, format, typecheck, test (có Mongo thật), build và build image. Đẩy GHCR, quét Trivy, deploy staging/prod để Giai đoạn 3.

@@ -4,7 +4,9 @@ Hướng dẫn cho Claude Code khi làm việc trong repo này. Đọc kỹ trư
 
 ## 1. Dự án
 
-Web app học từ vựng tiếng Anh: flashcard, quiz, ôn tập theo spaced repetition (SM-2). Có khu vực quản trị (/admin) để quản lý khóa học, bài học, từ vựng, blog, thông báo và người dùng. Mục tiêu: chạy production thật, đăng nhập bằng Google, email và số điện thoại, triển khai bằng Docker.
+Web app học từ vựng tiếng Anh: flashcard, quiz, ôn tập theo spaced repetition (SM-2). Có khu vực quản trị (/admin) để quản lý khóa học, bài học, từ vựng, blog, thông báo và người dùng.
+
+**Phạm vi hiện tại (2026-11-01, theo yêu cầu làm bản đơn giản):** đăng ký/đăng nhập → luyện từ vựng bằng **gõ đáp án** hoặc **trắc nghiệm**, chọn chiều hỏi Anh → Việt / Việt → Anh / trộn và số câu. Từ vựng là một danh sách chung (chưa có khóa học/bài học), editor thêm dần ở `/admin/words`. Khóa học và flashcard tạm bỏ, mở lại ở giai đoạn sau. Mục tiêu: chạy production thật, đăng nhập bằng Google, email và số điện thoại, triển khai bằng Docker.
 
 Người dùng cuối nói tiếng Việt. Giao diện tiếng Việt, có cấu trúc i18n để thêm tiếng Anh sau.
 
@@ -69,7 +71,7 @@ src/
     api/
       auth/[...all]/ # handler Better Auth
       health/        # health check cho Docker/giám sát
-  features/          # code theo tính năng: study, courses, blog, announcements, admin, auth
+  features/          # code theo tính năng: practice, words, admin, auth (sau này: courses, blog, announcements)
                      # mỗi feature: components/, actions.ts (server actions), schemas.ts (Zod)
   server/            # CHỈ chạy phía server (import 'server-only')
     db/              # client Mongo, định nghĩa collection, kiểu dữ liệu
@@ -79,7 +81,7 @@ src/
     mail/ sms/       # interface + adapter nhà cung cấp
     rate-limit/      # giới hạn tần suất
     audit/           # ghi audit log
-  lib/               # code thuần dùng cả hai phía: sm2.ts, utils, hằng số
+  lib/               # code thuần dùng cả hai phía: sm2.ts, practice/ (cấu hình + tạo câu hỏi), routes.ts, hằng số
   messages/          # chuỗi giao diện (vi.json, sau này en.json)
 migrations/          # script migration + index cho MongoDB (có version)
 docker/
@@ -120,7 +122,7 @@ Collection chính: `users`, `accounts`, `sessions`, `verifications` (do Better A
 Index bắt buộc (tạo qua migration, không tạo tay):
 - `courses`: unique `slug`; `(status, sort)`
 - `lessons`: `(courseId, sort)`
-- `words`: `(lessonId, status)`; text index cho tìm kiếm
+- `words`: `(status, createdAt)`; `(lessonId, status)` (cho khóa học sau này); text index cho tìm kiếm
 - `userWordProgress`: **unique `(userId, wordId)`**; `(userId, dueDate)`
 - `reviewLogs`: `(userId, reviewedAt)`
 - `posts`: unique `slug`; `(status, publishedAt)`
@@ -161,7 +163,7 @@ Hàm thuần, không phụ thuộc UI hay DB.
 - `ef = ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))`, tối thiểu 1.3, mặc định ban đầu 2.5.
 - `interval` khi `n >= 3` dùng `ef` **cũ** (trước khi cập nhật), theo SM-2 gốc. `ef` làm tròn 2 chữ số sau mỗi lượt (mọi bước thay đổi đều là bội của 0.02) để không tích lũy sai số float.
 - Tính ngày theo múi giờ dùng `src/lib/day.ts` (Intl, cộng theo ngày lịch nên đúng cả khi đổi giờ DST).
-- Nút giao diện: Again = 0, Hard = 3, Good = 4, Easy = 5. Quiz: đúng = Good, sai = Again.
+- Nút giao diện: Again = 0, Hard = 3, Good = 4, Easy = 5. Quiz: đúng = Good, sai = Again. (Hiện chỉ có gõ đáp án và trắc nghiệm, cả hai dùng đúng = Good, sai = Again; 4 nút dành cho khi mở lại flashcard.)
 - `dueDate` tính theo ngày (đầu ngày, múi giờ của người dùng), lưu dạng UTC.
 - Mọi thay đổi ở file này phải có unit test. Test bắt buộc: chuỗi Good cho interval 1, 6, 15, 38; Easy đưa ef lên 2.6; Hard đưa ef xuống 2.36; Again reset `n`; `ef` không dưới 1.3.
 - Ghi `reviewLogs` cho mỗi lượt ôn để sau này có thể nâng cấp lên FSRS.
@@ -210,8 +212,9 @@ Mỗi pull request: lint → typecheck → test → build. Merge vào `main`: bu
 - Ưu tiên Server Component; chỉ dùng Client Component khi cần tương tác.
 - Mutation đi qua server action hoặc route handler, luôn: xác thực → phân quyền → validate Zod → gọi DAL → ghi audit (nếu là thao tác quản trị) → revalidate cache.
 - Mọi trang xử lý đủ trạng thái: loading, rỗng, lỗi.
-- Giao diện responsive (ưu tiên điện thoại), dark mode theo hệ thống, có thể dùng bàn phím (phím tắt trong chế độ ôn: Space lật, 1-4 chấm điểm), đạt yêu cầu truy cập cơ bản (label, tương phản, focus).
-- Chuỗi giao diện đặt trong `src/messages/`, không viết cứng trong component.
+- Giao diện responsive (ưu tiên điện thoại), dark mode theo hệ thống, có thể dùng bàn phím (trắc nghiệm: 1-4 chọn, Enter câu tiếp; gõ đáp án: Enter kiểm tra/câu tiếp), đạt yêu cầu truy cập cơ bản (label, tương phản, focus).
+- Chuỗi giao diện đặt trong `src/messages/`, không viết cứng trong component. Đường dẫn dùng `routes` trong `src/lib/routes.ts`. Lựa chọn luyện tập (chế độ, chiều hỏi, số câu, số phương án) chỉ khai báo ở `src/lib/practice/config.ts`.
+- Chế độ luyện tập theo kiểu strategy: mỗi chế độ một mục trong `STRATEGIES` (`src/lib/practice/questions.ts`) và một component nhập đáp án (`answer-view.tsx`). Thêm chế độ không sửa logic của chế độ khác.
 - Tên file và thư mục: `kebab-case`; component: `PascalCase`; hàm/biến: `camelCase`.
 - Giữ code đơn giản, dễ đọc. Không trừu tượng hóa sớm.
 
@@ -289,7 +292,7 @@ SENTRY_DSN=
 Cập nhật mục này khi hoàn thành từng giai đoạn.
 
 - [x] **Giai đoạn 0: Hạ tầng.** Repo, Dockerfile, Compose dev/prod, Mongo replica set có xác thực, Caddy, CI cơ bản, `/api/health`. (Mongo ghim 8.2.12 vì 8.0/8.3 không chạy trên kernel ≥ 6.19. Workflow CI chưa chạy trên GitHub vì repo chưa có remote.)
-- [~] **Giai đoạn 1: Lõi sản phẩm.** (Xong trừ đăng nhập Google và xác minh email — tạm hoãn theo yêu cầu.) Better Auth (Google + email), DAL + phân quyền + test ma trận quyền, app học (flashcard SM-2, quiz, gõ đáp án, thống kê), khung /admin, quản lý role, audit log.
+- [~] **Giai đoạn 1: Lõi sản phẩm.** (Bản đơn giản 2026-11-01: luyện gõ đáp án + trắc nghiệm song ngữ, thêm/sửa từ ở /admin/words. Tạm hoãn theo yêu cầu: đăng nhập Google, xác minh email, khóa học/bài học, flashcard.) Better Auth (Google + email), DAL + phân quyền + test ma trận quyền, app học (flashcard SM-2, quiz, gõ đáp án, thống kê), khung /admin, quản lý role, audit log.
 - [ ] **Giai đoạn 2: Nội dung.** CRUD khóa học/bài/từ vựng, import CSV, upload ảnh S3, blog (Tiptap, sanitize, SEO, sitemap, RSS), thông báo.
 - [ ] **Giai đoạn 3: Hardening.** Rate limit, CSP và header, Sentry, uptime monitor, backup tự động + diễn tập khôi phục, quét image.
 - [ ] **Giai đoạn 4: Mở rộng.** Phone OTP (Zalo → SMS), game Match/Spell, tự điền IPA/audio từ API từ điển, PWA, i18n tiếng Anh, nhắc ôn tập.
