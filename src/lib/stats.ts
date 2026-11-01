@@ -25,8 +25,3 @@ export function computeStreak(reviewDays: Iterable<string>, now: Date, timeZone:
 export function retentionRate(correct: number, total: number): number | null {
   return total > 0 ? correct / total : null;
 }
-
-/** So khớp đáp án gõ: không phân biệt hoa thường, bỏ khoảng trắng thừa. */
-export function normalizeAnswer(s: string): string {
-  return s.trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
-}

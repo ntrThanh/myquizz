@@ -4,6 +4,7 @@ import { getMongoClient } from "@/server/db/client";
 import { collections, type Role } from "@/server/db/collections";
 import { recordAudit } from "@/server/dal/audit";
 import {
+  escapeRegex,
   NotFoundError,
   pageArgs,
   toObjectId,
@@ -17,10 +18,6 @@ export interface UserRow {
   email: string;
   role: Role;
   createdAt: Date;
-}
-
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function listUsers(

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { formatDateTime, getMessages } from "@/lib/i18n";
+import { routes } from "@/lib/routes";
 import { requireActorRole } from "@/server/auth/session";
 import { listAuditLogs } from "@/server/dal/audit";
 import { Pagination } from "@/components/pagination";
@@ -9,7 +10,7 @@ export const metadata: Metadata = { title: getMessages().admin.audit };
 
 export default async function AuditPage({ searchParams }: PageProps<"/admin/audit">) {
   const t = getMessages().admin;
-  const actor = await requireActorRole("admin", "/admin/audit");
+  const actor = await requireActorRole("admin", routes.adminAudit);
   const page = Number((await searchParams).page) || 1;
   const { items, total, pageSize } = await listAuditLogs(actor, { page, pageSize: 50 });
 
@@ -54,7 +55,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
         page={page}
         pageSize={pageSize}
         total={total}
-        href={(p) => `/admin/audit?page=${p}`}
+        href={(p) => `${routes.adminAudit}?page=${p}`}
       />
     </>
   );

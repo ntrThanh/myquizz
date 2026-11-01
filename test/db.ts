@@ -43,66 +43,23 @@ export async function insertUser(actor: Actor) {
   });
 }
 
-/** Một khóa published (1 bài, `wordCount` từ) và một khóa draft (1 bài, 2 từ). */
-export async function seedContent(wordCount = 5) {
+/** `published` từ published (`w0`, `w1`…) và `draft` từ draft (`d0`, `d1`…). */
+export async function seedWords(published = 5, draft = 2) {
   const now = new Date();
-  const t = { createdAt: now, updatedAt: now };
-  const pub = { courseId: new ObjectId(), lessonId: new ObjectId() };
-  const draft = { courseId: new ObjectId(), lessonId: new ObjectId() };
-
-  await collections.courses().insertMany([
-    {
-      _id: pub.courseId,
-      slug: "co-ban",
-      title: "Cơ bản",
-      description: "",
-      status: "published",
-      sort: 1,
-      ...t,
-    },
-    {
-      _id: draft.courseId,
-      slug: "nhap",
-      title: "Nháp",
-      description: "",
-      status: "draft",
-      sort: 2,
-      ...t,
-    },
-  ]);
-  await collections.lessons().insertMany([
-    {
-      _id: pub.lessonId,
-      courseId: pub.courseId,
-      title: "Bài 1",
-      status: "published",
-      sort: 1,
-      ...t,
-    },
-    {
-      _id: draft.lessonId,
-      courseId: draft.courseId,
-      title: "Bài nháp",
-      status: "draft",
-      sort: 1,
-      ...t,
-    },
-  ]);
-  const words = (n: number, ids: typeof pub, prefix: string) =>
+  const words = (n: number, prefix: string, status: "published" | "draft") =>
     Array.from({ length: n }, (_, i) => ({
       _id: new ObjectId(),
-      lessonId: ids.lessonId,
-      courseId: ids.courseId,
       word: `${prefix}${i}`,
       meaningVi: `nghĩa ${prefix}${i}`,
-      status: "published" as const,
-      ...t,
+      status,
+      createdAt: now,
+      updatedAt: now,
     }));
-  await collections.words().insertMany([...words(wordCount, pub, "w"), ...words(2, draft, "d")]);
-
+  const pub = words(published, "w", "published");
+  const drafts = words(draft, "d", "draft");
+  if (pub.length + drafts.length > 0) await collections.words().insertMany([...pub, ...drafts]);
   return {
-    pubCourseId: pub.courseId.toHexString(),
-    pubLessonId: pub.lessonId.toHexString(),
-    draftLessonId: draft.lessonId.toHexString(),
+    publishedIds: pub.map((w) => w._id.toHexString()),
+    draftIds: drafts.map((w) => w._id.toHexString()),
   };
 }

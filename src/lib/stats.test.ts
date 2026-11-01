@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStreak, normalizeAnswer, retentionRate } from "./stats";
+import { computeStreak, retentionRate } from "./stats";
 
 const VN = "Asia/Ho_Chi_Minh";
 const now = new Date("2026-10-31T05:00:00Z"); // 12:00 ngày 31/10 ở VN
@@ -36,12 +36,5 @@ describe("retentionRate", () => {
   });
   it("null khi chưa có lượt ôn", () => {
     expect(retentionRate(0, 0)).toBeNull();
-  });
-});
-
-describe("normalizeAnswer", () => {
-  it("bỏ hoa thường và khoảng trắng thừa", () => {
-    expect(normalizeAnswer("  Ice   Cream ")).toBe(normalizeAnswer("ice cream"));
-    expect(normalizeAnswer("Apple")).not.toBe(normalizeAnswer("apples"));
   });
 });

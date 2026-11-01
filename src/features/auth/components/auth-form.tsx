@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
 import { getMessages } from "@/lib/i18n";
+import { routes } from "@/lib/routes";
 import { safeNext } from "@/lib/safe-redirect";
 import { Alert, Button, Card, inputClass } from "@/components/ui";
 
@@ -54,8 +55,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   const other = isRegister
-    ? { text: t.hasAccount, label: t.submitLogin, href: "/login" }
-    : { text: t.noAccount, label: t.submitRegister, href: "/register" };
+    ? { text: t.hasAccount, label: t.submitLogin, href: routes.login }
+    : { text: t.noAccount, label: t.submitRegister, href: routes.register };
 
   return (
     <Card className="mx-auto w-full max-w-sm">
@@ -92,7 +93,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <p className="mt-5 text-center text-sm text-zinc-600 dark:text-zinc-400">
         {other.text}{" "}
         <Link
-          href={next === "/learn" ? other.href : `${other.href}?next=${encodeURIComponent(next)}`}
+          href={
+            next === routes.learn ? other.href : `${other.href}?next=${encodeURIComponent(next)}`
+          }
           className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
         >
           {other.label}

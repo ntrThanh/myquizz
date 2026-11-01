@@ -1,7 +1,8 @@
 // Kiểu dùng chung cho cả server và client.
 
-export type ContentStatus = "draft" | "published";
+export const CONTENT_STATUSES = ["draft", "published"] as const;
+export type ContentStatus = (typeof CONTENT_STATUSES)[number];
+
 export type Role = "user" | "editor" | "admin";
-export type StudyMode = "flashcard" | "quiz" | "typing";
 
 export const ROLES: readonly Role[] = ["user", "editor", "admin"];

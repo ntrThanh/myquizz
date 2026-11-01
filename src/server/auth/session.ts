@@ -2,6 +2,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { routes } from "@/lib/routes";
 import { ROLES, type Role } from "@/lib/types";
 import { getAuth } from "@/server/auth/auth";
 import { hasRole, type Actor } from "@/server/auth/roles";
@@ -21,13 +22,13 @@ export const getActor = cache(async (): Promise<Actor | null> => {
 /** Dùng trong page/layout: chưa đăng nhập thì chuyển tới trang đăng nhập. */
 export async function requireActor(next?: string): Promise<Actor> {
   const actor = await getActor();
-  if (!actor) redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
+  if (!actor) redirect(next ? `${routes.login}?next=${encodeURIComponent(next)}` : routes.login);
   return actor;
 }
 
 /** Dùng trong page/layout: thiếu quyền thì về trang chủ. */
 export async function requireActorRole(min: Role, next?: string): Promise<Actor> {
   const actor = await requireActor(next);
-  if (!hasRole(actor, min)) redirect("/");
+  if (!hasRole(actor, min)) redirect(routes.home);
   return actor;
 }

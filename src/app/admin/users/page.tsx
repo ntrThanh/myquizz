@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { formatDateTime, getMessages } from "@/lib/i18n";
+import { routes } from "@/lib/routes";
 import { requireActorRole } from "@/server/auth/session";
 import { listUsers } from "@/server/dal/users";
 import { Pagination } from "@/components/pagination";
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: getMessages().admin.users };
 
 export default async function UsersPage({ searchParams }: PageProps<"/admin/users">) {
   const t = getMessages().admin;
-  const actor = await requireActorRole("admin", "/admin/users");
+  const actor = await requireActorRole("admin", routes.adminUsers);
   const sp = await searchParams;
   const query = typeof sp.q === "string" ? sp.q.slice(0, 100) : "";
   const page = Number(sp.page) || 1;
@@ -68,7 +69,9 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
         page={page}
         pageSize={pageSize}
         total={total}
-        href={(p) => `/admin/users?page=${p}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+        href={(p) =>
+          `${routes.adminUsers}?page=${p}${query ? `&q=${encodeURIComponent(query)}` : ""}`
+        }
       />
     </>
   );

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { authClient } from "@/lib/auth-client";
 import { getMessages } from "@/lib/i18n";
+import { routes } from "@/lib/routes";
 import { Button } from "@/components/ui";
 
 export function SignOutButton() {
@@ -17,7 +18,7 @@ export function SignOutButton() {
       onClick={() =>
         start(async () => {
           await authClient.signOut();
-          router.push("/");
+          router.push(routes.home);
           router.refresh();
         })
       }

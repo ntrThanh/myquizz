@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { ROLES } from "@/lib/types";
+import { objectIdSchema } from "@/lib/validation";
 
 export const setRoleSchema = z.object({
-  userId: z.string().regex(/^[a-f0-9]{24}$/),
-  role: z.enum(["user", "editor", "admin"]),
+  userId: objectIdSchema,
+  role: z.enum(ROLES),
 });

@@ -16,7 +16,7 @@ function schema(required: string[], properties: Document): Document {
 }
 
 // JSON Schema validation cho các collection nội dung và tiến độ (CLAUDE.md §5.2).
-const validators: Record<string, Document> = {
+export const validators: Record<string, Document> = {
   courses: schema(["slug", "title", "status", "sort", "createdAt", "updatedAt"], {
     slug: { bsonType: "string", pattern: "^[a-z0-9]+(-[a-z0-9]+)*$" },
     title: str(),

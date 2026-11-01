@@ -31,3 +31,8 @@ export function pageArgs({ page = 1, pageSize = 20 }: PageInput) {
   const p = Math.max(Math.trunc(page), 1);
   return { page: p, pageSize: size, skip: (p - 1) * size };
 }
+
+/** Dùng chuỗi tìm kiếm của người dùng trong `$regex` mà không bị hiểu là biểu thức. */
+export function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
