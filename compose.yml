@@ -13,6 +13,10 @@ services:
       - install -m 400 -o mongodb -g mongodb /run/secrets/mongo_keyfile /tmp/mongo-keyfile && exec docker-entrypoint.sh "$$@"
       - --
     command: ["mongod", "--replSet", "rs0", "--keyFile", "/tmp/mongo-keyfile", "--bind_ip_all"]
+    # Mỗi collection/index là một file WiredTiger; giới hạn mặc định của Docker quá thấp (Mongo
+    # khuyến nghị 64000), thiếu thì mongod tự dừng với lỗi "Too many open files".
+    ulimits:
+      nofile: { soft: 64000, hard: 64000 }
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?}
