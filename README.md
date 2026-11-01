@@ -20,6 +20,7 @@ docker compose -f compose.yml -f compose.dev.yml up -d   # Mongo + Redis
 npm run db:migrate
 npm run db:seed                    # dữ liệu mẫu: 34 từ
 npm run db:import:fvdp -- <file.db> # tùy chọn: nạp từ điển Anh–Việt FVDP (~366 nghìn từ, dạng nháp)
+npm run db:assign-topics -- --publish # gán 20 chủ đề đời sống (scripts/topic-words*.ts) và đăng
 npm run dev                        # http://localhost:3000
 ```
 
@@ -97,6 +98,10 @@ Phím tắt: trắc nghiệm `1`–`4` chọn, `Enter` câu tiếp; gõ đáp á
 
 ### Luyện tập
 
+- **Luồng:** `/learn` hiện thống kê và thẻ các chủ đề (nhóm đời sống / chuyên ngành) kèm số bài và tiến độ → `/learn/topics/[topic]` danh sách bài "Công việc 1, 2…" kèm tiến độ từng bài → `/learn/topics/[topic]/[lesson]` chọn gõ đáp án hoặc trắc nghiệm, chiều hỏi, số câu, xem danh sách từ của bài → `/learn/practice?topic=&lesson=&mode=…`. Thẻ "Ôn tập tổng hợp" luyện trộn mọi chủ đề.
+- **Bài:** từ published của chủ đề xếp theo thứ tự học (`topicRanks`, do `db:assign-topics` ghi theo vị trí trong danh sách; từ thêm tay xếp cuối) rồi cắt mỗi `LESSON_SIZE` từ (50, ở `src/lib/practice/config.ts`). Thêm từ vào **cuối** danh sách thì có thêm bài mới, các bài cũ không đổi.
+- **Tiến độ:** một từ "đã thuộc" khi lần trả lời gần nhất đúng (SM-2 `n ≥ 1`); trả lời sai thì mất trạng thái này cho tới khi đúng lại.
+
 - **Chế độ** (`mode`): `typing` (gõ đáp án) hoặc `quiz` (trắc nghiệm 4 phương án). **Chiều hỏi** (`direction`): `en-vi`, `vi-en`, `mixed` (mỗi câu ngẫu nhiên một chiều). **Số câu** (`count`): 10/20/30. **Chủ đề** (`topic`): `all` hoặc một chủ đề trong `src/lib/topics.ts`; trang thiết lập chỉ liệt kê chủ đề đang có từ đã đăng. Danh sách lựa chọn nằm ở `src/lib/practice/config.ts`; giá trị sai trên URL thì dùng mặc định.
 - Từ được chọn theo thứ tự (trong chủ đề đã chọn): đến hạn ôn (SM-2) → chưa học → đã học bất kỳ. Phương án nhiễu của trắc nghiệm lấy cùng chủ đề. Không cần "thêm vào danh sách học"; tiến độ được tạo ở lần trả lời đầu. Đúng = Good, sai = Again.
 - Gõ đáp án: không phân biệt hoa thường, khoảng trắng thừa. Nghĩa có nhiều cách hiểu thì nhập cách nhau bằng dấu phẩy (`cơm, gạo`); gõ đúng một nghĩa là được.
@@ -106,7 +111,8 @@ Phím tắt: trắc nghiệm `1`–`4` chọn, `Enter` câu tiếp; gõ đáp á
 
 Editor/admin thêm và sửa từ ở `/admin/words`; mọi thao tác ghi audit log. Không có xóa cứng (để không mất tiến độ học): chuyển về **Nháp** để ẩn khỏi luyện tập.
 
-- **Chủ đề:** mỗi từ thuộc một chủ đề (`src/lib/topics.ts`, nhãn ở `topics` trong `vi.json`). Từ thêm tay mặc định `general` (Thông dụng).
+- **Chủ đề:** mỗi từ thuộc một hoặc nhiều chủ đề (`topics`, tối đa 8), chia hai nhóm trong `src/lib/topics.ts`: **20 chủ đề đời sống** (Gia đình, Bạn bè, Đồ ăn…) và **chuyên ngành** (Y học, Kinh tế… và `general` = Thông dụng khác). Nhãn ở `topics`/`topicGroups` trong `vi.json`. Từ thêm tay mặc định `general`.
+- **Chủ đề đời sống:** danh sách từ soạn tay: phần cốt lõi ở `scripts/topic-words.ts`, phần mở rộng (học sau) ở `scripts/topic-words-more.ts`; mỗi chủ đề ≥ 300 từ (có test), khoảng 5.400 từ có trong kho FVDP. `--publish` đăng luôn các từ được gán. `npm run db:assign-topics` thêm chủ đề cho các từ có trong kho (bỏ `general`, giữ chủ đề chuyên ngành, không đổi trạng thái) và in ra từ chưa có trong kho để thêm tay. Chạy lại an toàn; lưu ý chạy lại sẽ thêm lại chủ đề mà editor đã bỏ.
 - **Đăng dần:** lọc theo chủ đề/trạng thái (50 từ mỗi trang), tick chọn rồi bấm **Đăng các từ đã chọn** hoặc **Chuyển về nháp** (tối đa 100 từ mỗi lượt, một dòng audit `word.bulkStatus` cho cả lượt).
 
 ### Nạp từ điển FVDP
@@ -161,3 +167,4 @@ compose*.yml
 - **Lỗi "OS file watch limit reached" khi `npm run dev`:** tăng giới hạn inotify, ví dụ `sudo sysctl fs.inotify.max_user_watches=524288` (thêm vào `/etc/sysctl.d/` để giữ sau khi khởi động lại).
 - **Chủ đề từ vựng (2026-11-01):** danh sách cố định trong `src/lib/topics.ts`, chưa có trang quản lý chủ đề. Migration `0004` gán `general` cho từ cũ và thêm index; không đổi validator nên không cần quyền `collMod`. Danh sách quản trị sắp theo `_id` (mới nhất trước) để có index cho mọi tổ hợp lọc.
 - **Dữ liệu FVDP (GPL):** dùng nội dung FVDP trên web công khai nên ghi nguồn "Free Vietnamese Dictionary Project" (ví dụ ở chân trang). Chất lượng không đồng đều (bản 2004, nhiều thuật ngữ), nên nạp ở dạng nháp và editor duyệt trước khi đăng. Tìm kiếm trong `/admin/words` dùng regex (quét toàn bộ, ~0,8 giây với 366 nghìn từ); cần nhanh hơn thì chuyển sang text index.
+- **`topic` → `topics` (2026-11-01):** đổi field theo hai bước. Migration `0005` thêm `topics` (chép từ `topic`) và index; app chỉ đọc/ghi `topics`. Field `topic` và index `topic_*` của `0004` còn trong dữ liệu, sẽ xóa ở một migration sau khi đã deploy bản mới.

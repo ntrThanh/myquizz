@@ -6,7 +6,7 @@ Hướng dẫn cho Claude Code khi làm việc trong repo này. Đọc kỹ trư
 
 Web app học từ vựng tiếng Anh: flashcard, quiz, ôn tập theo spaced repetition (SM-2). Có khu vực quản trị (/admin) để quản lý khóa học, bài học, từ vựng, blog, thông báo và người dùng.
 
-**Phạm vi hiện tại (2026-11-01, theo yêu cầu làm bản đơn giản):** đăng ký/đăng nhập → luyện từ vựng bằng **gõ đáp án** hoặc **trắc nghiệm**, chọn chiều hỏi Anh → Việt / Việt → Anh / trộn và số câu. Từ vựng là một danh sách chung chia theo chủ đề (`src/lib/topics.ts`, chưa có khóa học/bài học); có thể nạp từ điển FVDP ở dạng nháp (`npm run db:import:fvdp`), editor duyệt và đăng dần ở `/admin/words`. Khóa học và flashcard tạm bỏ, mở lại ở giai đoạn sau. Mục tiêu: chạy production thật, đăng nhập bằng Google, email và số điện thoại, triển khai bằng Docker.
+**Phạm vi hiện tại (2026-11-01, theo yêu cầu làm bản đơn giản):** đăng ký/đăng nhập → luyện từ vựng bằng **gõ đáp án** hoặc **trắc nghiệm**, chọn chiều hỏi Anh → Việt / Việt → Anh / trộn và số câu. Từ vựng là một danh sách chung, mỗi từ thuộc một hoặc nhiều chủ đề (`src/lib/topics.ts`: 20 chủ đề đời sống + chuyên ngành; chưa có khóa học/bài học); có thể nạp từ điển FVDP ở dạng nháp (`npm run db:import:fvdp`), editor duyệt và đăng dần ở `/admin/words`. Khóa học và flashcard tạm bỏ, mở lại ở giai đoạn sau. Mục tiêu: chạy production thật, đăng nhập bằng Google, email và số điện thoại, triển khai bằng Docker.
 
 Người dùng cuối nói tiếng Việt. Giao diện tiếng Việt, có cấu trúc i18n để thêm tiếng Anh sau.
 
@@ -54,6 +54,7 @@ npm run db:migrate:status   # xem trạng thái migration
 npm run db:migrate:down     # quay lại một migration gần nhất
 npm run db:seed             # dữ liệu mẫu (chỉ dev/staging)
 npm run db:import:fvdp -- <file.db>   # nạp từ điển Anh–Việt FVDP (SQLite) vào words, dạng nháp
+npm run db:assign-topics -- [--publish]   # gán chủ đề đời sống + thứ tự học (scripts/topic-words*.ts)
 npm run user:set-role -- <email> <user|editor|admin>   # tạo admin đầu tiên, đổi role từ server
 
 # Docker production (trên server)
@@ -123,7 +124,7 @@ Collection chính: `users`, `accounts`, `sessions`, `verifications` (do Better A
 Index bắt buộc (tạo qua migration, không tạo tay):
 - `courses`: unique `slug`; `(status, sort)`
 - `lessons`: `(courseId, sort)`
-- `words`: `word`; `(status, _id)`; `(topic, _id)`; `(topic, status, _id)`; `(lessonId, status)` (cho khóa học sau này); text index cho tìm kiếm
+- `words`: `word`; `(status, _id)`; `(topics, _id)`; `(topics, status, _id)`; `(lessonId, status)` (cho khóa học sau này); text index cho tìm kiếm
 - `userWordProgress`: **unique `(userId, wordId)`**; `(userId, dueDate)`
 - `reviewLogs`: `(userId, reviewedAt)`
 - `posts`: unique `slug`; `(status, publishedAt)`
@@ -215,7 +216,7 @@ Mỗi pull request: lint → typecheck → test → build. Merge vào `main`: bu
 - Mọi trang xử lý đủ trạng thái: loading, rỗng, lỗi.
 - Phong cách theo skill `apple-design`: màu, vật liệu kính và chuyển động khai báo một chỗ ở `src/app/globals.css`. Component dùng token (`text-label`, `text-label-secondary`, `bg-accent`, `bg-fill-3`, `glass`, `press`, `animate-rise`...), không dùng màu Tailwind cứng (`zinc-*`, `indigo-*`). Chuyển động chỉ dùng `transform`/`opacity` và phải có nhánh `prefers-reduced-motion`.
 - Giao diện responsive (ưu tiên điện thoại), dark mode theo hệ thống, có thể dùng bàn phím (trắc nghiệm: 1-4 chọn, Enter câu tiếp; gõ đáp án: Enter kiểm tra/câu tiếp), đạt yêu cầu truy cập cơ bản (label, tương phản, focus).
-- Chuỗi giao diện đặt trong `src/messages/`, không viết cứng trong component. Đường dẫn dùng `routes` trong `src/lib/routes.ts`. Lựa chọn luyện tập (chế độ, chiều hỏi, số câu, số phương án) chỉ khai báo ở `src/lib/practice/config.ts`; danh sách chủ đề ở `src/lib/topics.ts`.
+- Chuỗi giao diện đặt trong `src/messages/`, không viết cứng trong component. Đường dẫn dùng `routes` trong `src/lib/routes.ts`. Lựa chọn luyện tập (chế độ, chiều hỏi, số câu, số phương án, số từ mỗi bài `LESSON_SIZE`) chỉ khai báo ở `src/lib/practice/config.ts`; danh sách chủ đề ở `src/lib/topics.ts`. Bài trong chủ đề được tính khi đọc (không lưu), theo `topicRanks` của từ.
 - Chế độ luyện tập theo kiểu strategy: mỗi chế độ một mục trong `STRATEGIES` (`src/lib/practice/questions.ts`) và một component nhập đáp án (`answer-view.tsx`). Thêm chế độ không sửa logic của chế độ khác.
 - Tên file và thư mục: `kebab-case`; component: `PascalCase`; hàm/biến: `camelCase`.
 - Giữ code đơn giản, dễ đọc. Không trừu tượng hóa sớm.
