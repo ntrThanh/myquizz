@@ -25,7 +25,7 @@ export function Pagination({
       ) : (
         <span />
       )}
-      <span className="text-zinc-600 dark:text-zinc-400">{fmt(t.page, { page, pages })}</span>
+      <span className="text-label-secondary tabular-nums">{fmt(t.page, { page, pages })}</span>
       {page < pages ? (
         <Link className={buttonClass("secondary")} href={href(page + 1)}>
           {t.next}

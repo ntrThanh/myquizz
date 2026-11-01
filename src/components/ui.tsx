@@ -5,15 +5,15 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-400 dark:bg-indigo-500 dark:hover:bg-indigo-400",
-  secondary:
-    "border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800",
-  ghost: "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-  danger: "bg-rose-600 text-white hover:bg-rose-500",
+    "bg-accent text-white shadow-[0_1px_2px_rgb(0_0_0/0.12),0_6px_16px_-6px_var(--accent)] hover:brightness-110 active:brightness-95",
+  // Nút phụ là một viên kính mỏng.
+  secondary: "glass-thin text-label hover:brightness-[0.98]",
+  ghost: "text-label-secondary hover:bg-fill-4 hover:text-label",
+  danger: "bg-danger text-white hover:brightness-110 active:brightness-95",
 };
 
 export function buttonClass(variant: Variant = "primary", extra = "") {
-  return `inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-70 ${variants[variant]} ${extra}`;
+  return `press inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${extra}`;
 }
 
 export function Button({
@@ -33,18 +33,13 @@ export function ButtonLink({
 }
 
 export function Card({ className = "", ...props }: ComponentProps<"div">) {
-  return (
-    <div
-      className={`rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 ${className}`}
-      {...props}
-    />
-  );
+  return <div className={`glass rounded-3xl p-5 ${className}`} {...props} />;
 }
 
 export function PageHeader({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <h1 className="text-3xl leading-tight font-bold tracking-tight text-balance">{title}</h1>
       {children}
     </div>
   );
@@ -60,12 +55,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
-      <p className="font-medium">{title}</p>
+    <div className="glass-thin animate-rise rounded-3xl px-6 py-14 text-center">
+      <p className="text-lg font-semibold tracking-tight">{title}</p>
       {description && (
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{description}</p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-label-secondary">{description}</p>
       )}
-      {action && <div className="mt-5">{action}</div>}
+      {action && <div className="mt-6">{action}</div>}
     </div>
   );
 }
@@ -78,12 +73,12 @@ export function Badge({
   tone?: "zinc" | "amber" | "indigo";
 }) {
   const tones = {
-    zinc: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-    amber: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-    indigo: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300",
+    zinc: "bg-fill-3 text-label-secondary",
+    amber: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+    indigo: "bg-accent/15 text-accent dark:text-indigo-300",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
+    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -97,15 +92,13 @@ export function Alert({
   tone?: "error" | "success";
 }) {
   const tones = {
-    error:
-      "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300",
-    success:
-      "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300",
+    error: "bg-danger/12 text-danger-ink",
+    success: "bg-success/15 text-success-ink",
   };
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={`rounded-lg border px-3 py-2 text-sm ${tones[tone]}`}
+      className={`animate-rise rounded-2xl px-4 py-2.5 text-sm font-medium ${tones[tone]}`}
     >
       {children}
     </p>
@@ -113,4 +106,4 @@ export function Alert({
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
+  "w-full rounded-xl border-0 bg-field px-4 py-2.5 text-base text-label shadow-[inset_0_0_0_1px_var(--separator)] outline-none transition-shadow duration-200 placeholder:text-label-tertiary focus:shadow-[inset_0_0_0_2px_var(--accent),0_0_0_4px_color-mix(in_srgb,var(--accent)_18%,transparent)]";

@@ -1,27 +1,331 @@
 @import "tailwindcss";
 
+/*
+ * Token giao diện theo skill apple-design: màu hệ thống của Apple, chữ có độ đậm nhạt theo vai
+ * trò (label/secondary/tertiary), vật liệu kính và đường cong chuyển động. Component chỉ dùng
+ * token (qua tiện ích Tailwind bên dưới), không viết cứng mã màu.
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #18181b;
-  color-scheme: light;
-}
+  --indigo: #5856d6;
+  --purple: #af52de;
+  --pink: #ff2d55;
+  --orange: #ff9500;
+  --teal: #30b0c7;
+  --green: #34c759;
+  --red: #ff3b30;
+  --accent: var(--indigo);
+  /* Chữ trên nền màu thành công/lỗi, đậm hơn màu hệ thống để đủ tương phản 4.5:1. */
+  --success-ink: #1a7f37;
+  --danger-ink: #c4231a;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Nền trắng thuần, không gradient; kính nổi lên nhờ viền sáng, viền mảnh và bóng nhiều lớp. */
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --label: rgb(0 0 0);
+  --label-secondary: rgb(60 60 67 / 0.68);
+  --label-tertiary: rgb(60 60 67 / 0.36);
+  --separator: rgb(60 60 67 / 0.18);
+  --fill-1: rgb(120 120 128 / 0.2);
+  --fill-2: rgb(120 120 128 / 0.16);
+  --fill-3: rgb(120 120 128 / 0.12);
+  --fill-4: rgb(120 120 128 / 0.08);
+  --field: rgb(255 255 255 / 0.9);
+
+  /* Kính trên nền trắng: tông trắng hơi lạnh để mép kính tách khỏi nền. */
+  --material-thin: rgb(248 248 251 / 0.62);
+  --material-regular: rgb(250 250 252 / 0.74);
+  --glass-specular: rgb(255 255 255 / 0.95);
+  --glass-glow: rgb(255 255 255 / 0.7);
+  --glass-rim: rgb(0 0 0 / 0.07);
+  --glass-floor: rgb(0 0 0 / 0.035);
+  --shadow-float:
+    0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px -4px rgb(0 0 0 / 0.07),
+    0 18px 44px -14px rgb(0 0 0 / 0.14);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Gần với lò xo bounce ~0.15: vượt nhẹ rồi về đích. */
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #09090b;
-    --foreground: #f4f4f5;
+    --indigo: #5e5ce6;
+    --purple: #bf5af2;
+    --pink: #ff375f;
+    --orange: #ff9f0a;
+    --teal: #40c8e0;
+    --green: #30d158;
+    --red: #ff453a;
+    --success-ink: #4ade80;
+    --danger-ink: #ff7b72;
+
+    --bg: #000000;
+    --bg-elevated: #1c1c1e;
+    --label: rgb(255 255 255);
+    --label-secondary: rgb(235 235 245 / 0.64);
+    --label-tertiary: rgb(235 235 245 / 0.32);
+    --separator: rgb(84 84 88 / 0.6);
+    --fill-1: rgb(120 120 128 / 0.36);
+    --fill-2: rgb(120 120 128 / 0.32);
+    --fill-3: rgb(120 120 128 / 0.24);
+    --fill-4: rgb(120 120 128 / 0.18);
+    --field: rgb(118 118 128 / 0.22);
+
+    --material-thin: rgb(30 30 32 / 0.6);
+    --material-regular: rgb(28 28 30 / 0.72);
+    --glass-specular: rgb(255 255 255 / 0.16);
+    --glass-glow: rgb(255 255 255 / 0.06);
+    --glass-rim: rgb(255 255 255 / 0.1);
+    --glass-floor: rgb(0 0 0 / 0.4);
+    --shadow-float: 0 8px 32px rgb(0 0 0 / 0.5);
+
     color-scheme: dark;
   }
 }
 
+@theme inline {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue",
+    "Segoe UI", system-ui, sans-serif;
+
+  --color-accent: var(--accent);
+  --color-success: var(--green);
+  --color-danger: var(--red);
+  --color-success-ink: var(--success-ink);
+  --color-danger-ink: var(--danger-ink);
+  --color-bg: var(--bg);
+  --color-elevated: var(--bg-elevated);
+  --color-label: var(--label);
+  --color-label-secondary: var(--label-secondary);
+  --color-label-tertiary: var(--label-tertiary);
+  --color-separator: var(--separator);
+  --color-fill-1: var(--fill-1);
+  --color-fill-2: var(--fill-2);
+  --color-fill-3: var(--fill-3);
+  --color-fill-4: var(--fill-4);
+  --color-field: var(--field);
+
+  --ease-apple-out: var(--ease-out);
+  --ease-spring: var(--ease-spring);
+
+  --animate-rise: rise 600ms var(--ease-out) backwards;
+  --animate-pop: pop 420ms var(--ease-spring);
+  --animate-shake: shake 420ms var(--ease-out);
+  --animate-ring: ring 1100ms var(--ease-out) 150ms backwards;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise-y, 14px)) scale(var(--rise-scale, 0.985));
+  }
+}
+
+@keyframes pop {
+  40% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes shake {
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes ring {
+  from {
+    stroke-dashoffset: var(--ring-length);
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--label);
   font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+@layer components {
+  /*
+   * Kính: trong mờ + blur + tăng bão hòa + viền sáng mép trên + đáy dày hơn một chút + viền mảnh
+   * + bóng nổi nhiều lớp. Trên nền trắng, phần làm kính "đọc" được là các viền và bóng.
+   */
+  .glass,
+  .glass-thin {
+    background: var(--material-regular);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    box-shadow:
+      inset 0 1px 0 var(--glass-specular),
+      inset 0 0 0 1px var(--glass-glow),
+      inset 0 -1px 0 var(--glass-floor),
+      0 0 0 0.5px var(--glass-rim),
+      var(--shadow-float);
+  }
+  .glass-thin {
+    background: var(--material-thin);
+    -webkit-backdrop-filter: blur(14px) saturate(170%);
+    backdrop-filter: blur(14px) saturate(170%);
+    box-shadow:
+      inset 0 1px 0 var(--glass-specular),
+      inset 0 0 0 1px var(--glass-glow),
+      inset 0 -1px 0 var(--glass-floor),
+      0 0 0 0.5px var(--glass-rim),
+      0 1px 2px rgb(0 0 0 / 0.04),
+      0 4px 12px -4px rgb(0 0 0 / 0.08);
+  }
+
+  /*
+   * Liquid Glass cho thanh menu dính đầu trang (nội dung cuộn bên dưới bị khúc xạ ở mép).
+   * Bộ lọc SVG #liquid-refraction khai báo trong layout. Chỉ bật ở trình duyệt không cần tiền tố
+   * -webkit- (Chromium); Safari giữ kính thường của .glass vì không vẽ url() trong backdrop-filter.
+   */
+  @supports (backdrop-filter: url(#liquid-refraction)) and
+    (not (-webkit-backdrop-filter: blur(1px))) {
+    .glass-liquid {
+      backdrop-filter: blur(18px) saturate(180%) url(#liquid-refraction);
+    }
+  }
+
+  /* Phản hồi ngay khi nhấn xuống: thu nhỏ nhẹ, không bao giờ về 0. */
+  .press {
+    transition:
+      transform 160ms var(--ease-out),
+      background-color 200ms var(--ease-out),
+      color 200ms var(--ease-out),
+      filter 160ms var(--ease-out),
+      opacity 200ms var(--ease-out);
+  }
+  .press:active:not(:disabled, [aria-disabled="true"]) {
+    transform: scale(0.97);
+  }
+
+  /* Các phần tử con lần lượt hiện lên, cách nhau 70ms. */
+  .stagger > * {
+    animation: var(--animate-rise);
+  }
+  .stagger > :nth-child(2) {
+    animation-delay: 70ms;
+  }
+  .stagger > :nth-child(3) {
+    animation-delay: 140ms;
+  }
+  .stagger > :nth-child(4) {
+    animation-delay: 210ms;
+  }
+  .stagger > :nth-child(5) {
+    animation-delay: 280ms;
+  }
+  .stagger > :nth-child(n + 6) {
+    animation-delay: 350ms;
+  }
+
+  /*
+   * Segmented control kiểu iOS chỉ bằng CSS: viên chọn trượt (có vượt nhẹ) tới ô đang chọn.
+   * Các ô là <label> chứa radio; --n là số ô, --k là vị trí ô đang chọn.
+   */
+  .segmented {
+    position: relative;
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    padding: 4px;
+    border-radius: 14px;
+    background: var(--fill-3);
+  }
+  .segmented::before {
+    content: "";
+    position: absolute;
+    inset-block: 4px;
+    left: 4px;
+    width: calc((100% - 8px) / var(--n));
+    border-radius: 10px;
+    background: var(--bg-elevated);
+    box-shadow:
+      0 3px 8px rgb(0 0 0 / 0.12),
+      0 1px 1px rgb(0 0 0 / 0.04);
+    transform: translateX(calc(var(--k, 0) * 100%));
+    transition: transform 420ms var(--ease-spring);
+  }
+  .segmented > * {
+    position: relative;
+  }
+  .segmented:has(> :nth-child(2) :checked) {
+    --k: 1;
+  }
+  .segmented:has(> :nth-child(3) :checked) {
+    --k: 2;
+  }
+  .segmented:has(> :nth-child(4) :checked) {
+    --k: 3;
+  }
+  .segmented:has(:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* Giảm chuyển động: chỉ còn mờ dần, bỏ rung/nảy (nhẹ hơn chứ không mất hẳn). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rise-y: 0;
+    --rise-scale: 1;
+  }
+  .animate-pop,
+  .animate-shake {
+    animation: none;
+  }
+  .segmented::before,
+  .press {
+    transition-duration: 1ms;
+  }
+  .press:active:not(:disabled, [aria-disabled="true"]) {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-thin,
+  .glass-liquid {
+    background: var(--bg-elevated);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass,
+  .glass-thin {
+    box-shadow: 0 0 0 1px var(--label);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-thin {
+    background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  }
 }

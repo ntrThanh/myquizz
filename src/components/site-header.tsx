@@ -10,14 +10,14 @@ export async function SiteHeader() {
   const t = getMessages().nav;
   const actor = await getActor();
   const link =
-    "whitespace-nowrap rounded-lg px-2 py-2 sm:px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800";
+    "press whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-label-secondary hover:bg-fill-4 hover:text-label";
 
   return (
-    <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-      <div className="mx-auto flex max-w-5xl items-center gap-1 px-2 py-2 sm:px-4">
+    <header className="sticky top-0 z-20 px-3 pt-3">
+      <div className="glass glass-liquid mx-auto flex max-w-5xl items-center gap-1 rounded-full py-1.5 pr-1.5 pl-4">
         <Link
           href={routes.home}
-          className="mr-1 shrink-0 text-lg font-bold text-indigo-600 dark:text-indigo-400"
+          className="mr-2 shrink-0 text-lg font-bold tracking-tight text-label"
         >
           {t.brand}
         </Link>
@@ -36,7 +36,7 @@ export async function SiteHeader() {
         </nav>
         {actor ? (
           <div className="flex items-center gap-1">
-            <span className="hidden max-w-40 truncate text-sm text-zinc-600 sm:inline dark:text-zinc-400">
+            <span className="hidden max-w-40 truncate px-2 text-sm text-label-secondary sm:inline">
               {actor.name}
             </span>
             <SignOutButton />
