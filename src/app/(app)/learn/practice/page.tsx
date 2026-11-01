@@ -17,10 +17,15 @@ export default async function PracticePage({ searchParams }: PageProps<"/learn/p
   const actor = await requireActor(withQuery(routes.practice, query));
   const session = await getPracticeSession(actor, settings);
   const settingsHref = withQuery(routes.learn, query);
+  const title = [
+    t.modes[settings.mode].title,
+    t.directions[settings.direction],
+    ...(settings.topic === "all" ? [] : [getMessages().topics[settings.topic]]),
+  ].join(" · ");
 
   return (
     <>
-      <PageHeader title={`${t.modes[settings.mode].title} · ${t.directions[settings.direction]}`}>
+      <PageHeader title={title}>
         <ButtonLink href={settingsHref} variant="secondary">
           {t.changeSettings}
         </ButtonLink>

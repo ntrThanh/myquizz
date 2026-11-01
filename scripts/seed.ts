@@ -49,7 +49,7 @@ async function seed(db: Db) {
       { word },
       {
         $set: { meaningVi, ipa, example, status: "published", updatedAt: now },
-        $setOnInsert: { _id: new ObjectId(), createdAt: now },
+        $setOnInsert: { _id: new ObjectId(), topic: "general", createdAt: now },
       },
       { upsert: true },
     );

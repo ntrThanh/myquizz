@@ -4,13 +4,19 @@ import { DEFAULT_PRACTICE_SETTINGS } from "@/lib/practice/config";
 import { ForbiddenError, UnauthorizedError, type Actor } from "@/server/auth/roles";
 import { listAuditLogs } from "@/server/dal/audit";
 import { NotFoundError } from "@/server/dal/common";
-import { getPracticeSession, getStats, recordAnswer } from "@/server/dal/practice";
+import {
+  getPracticeSession,
+  getStats,
+  listPracticeTopics,
+  recordAnswer,
+} from "@/server/dal/practice";
 import { countUsers, listUsers, setUserRole } from "@/server/dal/users";
 import {
   countWords,
   createWord,
   getWord,
   listWords,
+  setWordsStatus,
   updateWord,
   type WordInput,
 } from "@/server/dal/words";
@@ -32,6 +38,7 @@ const newWord: WordInput = {
   meaningVi: "con mèo",
   ipa: "",
   example: "",
+  topic: "general",
   status: "draft",
 };
 
@@ -92,11 +99,14 @@ describeDb("DAL: ma trận quyền", () => {
         }),
     ],
     ["getStats", userOnly, (a) => getStats(a)],
+    ["listPracticeTopics", userOnly, (a) => listPracticeTopics(a)],
     ["listWords", editorOnly, (a) => listWords(a)],
     ["getWord", editorOnly, (a) => getWord(a, ids.publishedIds[0]!)],
     ["countWords", editorOnly, (a) => countWords(a)],
     ["createWord", editorOnly, (a) => createWord(a, newWord)],
     ["updateWord", editorOnly, (a) => updateWord(a, ids.draftIds[2]!, newWord)],
+    // Từ đã published, đặt lại published: không đổi dữ liệu của các test khác.
+    ["setWordsStatus", editorOnly, (a) => setWordsStatus(a, [ids.publishedIds[4]!], "published")],
     ["listUsers", adminOnly, (a) => listUsers(a)],
     ["countUsers", adminOnly, (a) => countUsers(a)],
     ["listAuditLogs", adminOnly, (a) => listAuditLogs(a)],

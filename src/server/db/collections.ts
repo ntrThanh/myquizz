@@ -1,6 +1,7 @@
 import "server-only";
 import type { Document, ObjectId } from "mongodb";
 import type { Direction, PracticeMode } from "@/lib/practice/config";
+import type { Topic } from "@/lib/topics";
 import type { ContentStatus, Role } from "@/lib/types";
 import { getDb } from "@/server/db/client";
 
@@ -31,6 +32,9 @@ export interface WordDoc extends Timestamps {
   meaningVi: string;
   ipa?: string;
   example?: string;
+  topic: Topic;
+  /** Nguồn khi nạp hàng loạt (ví dụ `fvdp`); không có nghĩa là thêm tay. */
+  source?: string;
   status: ContentStatus;
 }
 

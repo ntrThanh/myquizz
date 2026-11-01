@@ -1,6 +1,8 @@
 // Cấu hình luyện tập dùng chung cho server, client và Zod. Thêm lựa chọn mới thì sửa ở đây
 // (và thêm nhãn trong src/messages/), không viết cứng ở component.
 
+import { TOPICS } from "@/lib/topics";
+
 /** Cách trả lời: gõ đáp án hoặc chọn một trong nhiều phương án. */
 export const PRACTICE_MODES = ["typing", "quiz"] as const;
 export type PracticeMode = (typeof PRACTICE_MODES)[number];
@@ -16,16 +18,22 @@ export type DirectionSetting = (typeof DIRECTION_SETTINGS)[number];
 export const QUESTION_COUNTS = [10, 20, 30] as const;
 export type QuestionCount = (typeof QUESTION_COUNTS)[number];
 
+/** Luyện một chủ đề, hoặc mọi chủ đề. */
+export const TOPIC_SETTINGS = ["all", ...TOPICS] as const;
+export type TopicSetting = (typeof TOPIC_SETTINGS)[number];
+
 export interface PracticeSettings {
   mode: PracticeMode;
   direction: DirectionSetting;
   count: QuestionCount;
+  topic: TopicSetting;
 }
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
   mode: "quiz",
   direction: "en-vi",
   count: 10,
+  topic: "all",
 };
 
 /** Số phương án mỗi câu trắc nghiệm (1 đúng + còn lại là nhiễu). */

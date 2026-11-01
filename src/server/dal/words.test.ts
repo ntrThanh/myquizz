@@ -2,7 +2,14 @@ import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { closeDb, describeDb, makeActor, resetDb, seedWords } from "../../../test/db";
 import { collections } from "@/server/db/collections";
 import { NotFoundError } from "@/server/dal/common";
-import { createWord, getWord, listWords, updateWord, type WordInput } from "@/server/dal/words";
+import {
+  createWord,
+  getWord,
+  listWords,
+  setWordsStatus,
+  updateWord,
+  type WordInput,
+} from "@/server/dal/words";
 
 describeDb("DAL: quản lý từ vựng", () => {
   const editor = makeActor("editor");
@@ -11,6 +18,7 @@ describeDb("DAL: quản lý từ vựng", () => {
     meaningVi: "con mèo",
     ipa: "/kæt/",
     example: "",
+    topic: "general",
     status: "published",
   };
 
@@ -56,6 +64,32 @@ describeDb("DAL: quản lý từ vựng", () => {
     const page = await listWords(editor, { pageSize: 2, page: 2 });
     expect(page).toMatchObject({ total: 5, page: 2 });
     expect(page.items).toHaveLength(2);
+  });
+
+  it("lọc theo chủ đề", async () => {
+    await seedWords(2, 1);
+    await seedWords(1, 1, "medicine");
+    expect((await listWords(editor, { topic: "medicine" })).total).toBe(2);
+    expect((await listWords(editor, { topic: "medicine", status: "draft" })).total).toBe(1);
+  });
+
+  it("đổi trạng thái hàng loạt: chỉ đếm và audit từ thực sự đổi", async () => {
+    const { publishedIds, draftIds } = await seedWords(1, 2);
+    const res = await setWordsStatus(editor, [...draftIds, publishedIds[0]!], "published");
+    expect(res).toEqual({ changed: 2 });
+    expect(await collections.words().countDocuments({ status: "published" })).toBe(3);
+    const log = await collections.auditLogs().findOne({ action: "word.bulkStatus" });
+    expect(log?.meta).toEqual({ status: "published", ids: expect.arrayContaining(draftIds) });
+    expect(log?.meta?.ids).toHaveLength(2);
+
+    expect(await setWordsStatus(editor, draftIds, "published")).toEqual({ changed: 0 });
+    expect(await collections.auditLogs().countDocuments({ action: "word.bulkStatus" })).toBe(1);
+  });
+
+  it("đổi trạng thái hàng loạt: id sai thì báo NotFound, quá giới hạn thì từ chối", async () => {
+    await expect(setWordsStatus(editor, ["x"], "draft")).rejects.toThrow(NotFoundError);
+    const tooMany = Array.from({ length: 101 }, () => "f".repeat(24));
+    await expect(setWordsStatus(editor, tooMany, "draft")).rejects.toThrow(RangeError);
   });
 
   it("tìm kiếm với ký tự đặc biệt không bị hiểu là regex", async () => {

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { getMessages } from "@/lib/i18n";
 import { routes } from "@/lib/routes";
+import { DEFAULT_TOPIC, TOPICS } from "@/lib/topics";
 import { CONTENT_STATUSES } from "@/lib/types";
 import { Alert, Button, ButtonLink, Card, inputClass } from "@/components/ui";
 import { createWordAction, updateWordAction } from "@/features/words/actions";
@@ -11,8 +12,16 @@ import { WORD_LIMITS, type WordValues } from "@/features/words/schemas";
 
 const t = getMessages().admin.word;
 const common = getMessages().common;
+const topicLabels = getMessages().topics;
 
-const EMPTY: WordValues = { word: "", meaningVi: "", ipa: "", example: "", status: "published" };
+const EMPTY: WordValues = {
+  word: "",
+  meaningVi: "",
+  ipa: "",
+  example: "",
+  topic: DEFAULT_TOPIC,
+  status: "published",
+};
 
 function Field({
   id,
@@ -56,6 +65,7 @@ export function WordForm({ id, initial = EMPTY }: { id?: string; initial?: WordV
       meaningVi: String(form.get("meaningVi") ?? ""),
       ipa: String(form.get("ipa") ?? ""),
       example: String(form.get("example") ?? ""),
+      topic: String(form.get("topic") ?? ""),
       status: String(form.get("status") ?? ""),
     };
     start(async () => {
@@ -116,6 +126,15 @@ export function WordForm({ id, initial = EMPTY }: { id?: string; initial?: WordV
             lang="en"
             className={inputClass}
           />
+        </Field>
+        <Field id="topic" label={t.topic}>
+          <select id="topic" name="topic" defaultValue={initial.topic} className={inputClass}>
+            {TOPICS.map((topic) => (
+              <option key={topic} value={topic}>
+                {topicLabels[topic]}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field id="status" label={t.status} hint={t.statusHint}>
           <select

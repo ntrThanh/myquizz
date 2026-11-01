@@ -5,6 +5,7 @@ import {
   DIRECTIONS,
   PRACTICE_MODES,
   QUESTION_COUNTS,
+  TOPIC_SETTINGS,
   type PracticeSettings,
 } from "@/lib/practice/config";
 import { objectIdSchema } from "@/lib/validation";
@@ -19,18 +20,20 @@ export const practiceSettingsSchema = z.object({
   count: z
     .preprocess(first, z.coerce.number().pipe(z.literal(QUESTION_COUNTS)))
     .catch(DEFAULTS.count),
+  topic: z.preprocess(first, z.enum(TOPIC_SETTINGS)).catch(DEFAULTS.topic),
 });
 
 export function parsePracticeSettings(searchParams: unknown): PracticeSettings {
   return practiceSettingsSchema.parse(searchParams ?? {});
 }
 
-/** Chuỗi query để mở lại đúng cài đặt: `mode=quiz&direction=en-vi&count=10`. */
+/** Chuỗi query để mở lại đúng cài đặt: `mode=quiz&direction=en-vi&count=10&topic=all`. */
 export function practiceSettingsQuery(settings: PracticeSettings): string {
   return new URLSearchParams({
     mode: settings.mode,
     direction: settings.direction,
     count: String(settings.count),
+    topic: settings.topic,
   }).toString();
 }
 

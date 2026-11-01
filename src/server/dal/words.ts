@@ -1,5 +1,7 @@
 import "server-only";
 import { ObjectId, type Filter } from "mongodb";
+import type { Topic } from "@/lib/topics";
+import { MAX_BULK_WORDS } from "@/lib/words";
 import { assertRole, type Actor } from "@/server/auth/roles";
 import { getMongoClient } from "@/server/db/client";
 import { collections, type ContentStatus, type WordDoc } from "@/server/db/collections";
@@ -21,6 +23,7 @@ export interface WordInput {
   meaningVi: string;
   ipa: string;
   example: string;
+  topic: Topic;
   status: ContentStatus;
 }
 
@@ -36,6 +39,7 @@ function toRow(w: WordDoc): WordRow {
     meaningVi: w.meaningVi,
     ipa: w.ipa ?? "",
     example: w.example ?? "",
+    topic: w.topic,
     status: w.status,
     updatedAt: w.updatedAt,
   };
@@ -45,9 +49,10 @@ const OPTIONAL_FIELDS = ["ipa", "example"] as const;
 
 /** Field tùy chọn để trống thì không lưu (thay vì lưu chuỗi rỗng). */
 function toFields(input: WordInput) {
-  const set: Pick<WordDoc, "word" | "meaningVi" | "status" | "ipa" | "example"> = {
+  const set: Pick<WordDoc, "word" | "meaningVi" | "topic" | "status" | "ipa" | "example"> = {
     word: input.word,
     meaningVi: input.meaningVi,
+    topic: input.topic,
     status: input.status,
   };
   const unset: Partial<Record<(typeof OPTIONAL_FIELDS)[number], "">> = {};
@@ -60,13 +65,14 @@ function toFields(input: WordInput) {
 
 export async function listWords(
   actor: Actor | null,
-  input: PageInput & { query?: string; status?: ContentStatus } = {},
+  input: PageInput & { query?: string; status?: ContentStatus; topic?: Topic } = {},
 ): Promise<Page<WordRow>> {
   assertRole(actor, "editor");
   const { page, pageSize, skip } = pageArgs(input);
   const q = input.query?.trim();
   const filter: Filter<WordDoc> = {
     ...(input.status ? { status: input.status } : {}),
+    ...(input.topic ? { topic: input.topic } : {}),
     ...(q
       ? {
           $or: [
@@ -80,7 +86,7 @@ export async function listWords(
     collections
       .words()
       .find(filter)
-      .sort({ createdAt: -1, _id: -1 })
+      .sort({ _id: -1 }) // mới nhất trước; có index cho mọi tổ hợp lọc (migration 0004)
       .skip(skip)
       .limit(pageSize)
       .toArray(),
@@ -118,7 +124,7 @@ export async function createWord(actor: Actor | null, input: WordInput): Promise
         actor,
         "word.create",
         { type: "word", id: _id.toHexString() },
-        { word: input.word, status: input.status },
+        { word: input.word, topic: input.topic, status: input.status },
         session,
       );
     });
@@ -154,6 +160,51 @@ export async function updateWord(actor: Actor | null, id: string, input: WordInp
         { session },
       );
       await recordAudit(actor, "word.update", { type: "word", id }, { changed }, session);
+    });
+  } finally {
+    await session.endSession();
+  }
+}
+
+/**
+ * Đổi trạng thái nhiều từ một lúc (công khai dần từ đã nạp). Một dòng audit cho cả lượt, ghi
+ * danh sách id thực sự thay đổi. Trả về số từ đã đổi.
+ */
+export async function setWordsStatus(
+  actor: Actor | null,
+  ids: string[],
+  status: ContentStatus,
+): Promise<{ changed: number }> {
+  assertRole(actor, "editor");
+  if (ids.length > MAX_BULK_WORDS) throw new RangeError(`Tối đa ${MAX_BULK_WORDS} từ mỗi lần`);
+  const _ids = ids.map((id) => toObjectId(id, "Từ"));
+  if (_ids.length === 0) return { changed: 0 };
+
+  const session = getMongoClient().startSession();
+  try {
+    return await session.withTransaction(async () => {
+      const targets = await collections
+        .words()
+        .find({ _id: { $in: _ids }, status: { $ne: status } }, { projection: { _id: 1 }, session })
+        .toArray();
+      if (targets.length === 0) return { changed: 0 };
+
+      const targetIds = targets.map((w) => w._id);
+      await collections
+        .words()
+        .updateMany(
+          { _id: { $in: targetIds } },
+          { $set: { status, updatedAt: new Date() } },
+          { session },
+        );
+      await recordAudit(
+        actor,
+        "word.bulkStatus",
+        { type: "word", id: "bulk" },
+        { status, ids: targetIds.map((id) => id.toHexString()) },
+        session,
+      );
+      return { changed: targetIds.length };
     });
   } finally {
     await session.endSession();

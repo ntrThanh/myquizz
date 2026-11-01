@@ -8,7 +8,8 @@ import {
   type PracticeSettings,
 } from "@/lib/practice/config";
 import { routes } from "@/lib/routes";
-import { Button, Card } from "@/components/ui";
+import type { TopicCount } from "@/server/dal/practice";
+import { Button, Card, inputClass } from "@/components/ui";
 
 function ChoiceGroup<T extends string | number>({
   legend,
@@ -49,13 +50,43 @@ function ChoiceGroup<T extends string | number>({
   );
 }
 
-/** Chọn chế độ, chiều hỏi, số câu rồi mở trang luyện tập (form GET, không cần JavaScript). */
-export function PracticeSetupForm({ defaults }: { defaults: PracticeSettings }) {
+/**
+ * Chọn chủ đề, chế độ, chiều hỏi, số câu rồi mở trang luyện tập (form GET, không cần JavaScript).
+ * `topics`: các chủ đề đang có từ published.
+ */
+export function PracticeSetupForm({
+  defaults,
+  topics,
+}: {
+  defaults: PracticeSettings;
+  topics: TopicCount[];
+}) {
   const t = getMessages().practice;
+  const topicLabels = getMessages().topics;
+  const total = topics.reduce((sum, c) => sum + c.count, 0);
+  const topic = topics.some((c) => c.topic === defaults.topic) ? defaults.topic : "all";
   return (
     <Card className="p-6">
       <h2 className="mb-5 text-lg font-semibold">{t.setupTitle}</h2>
       <form action={routes.practice} className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="topic" className="text-sm font-medium">
+            {t.topic}
+          </label>
+          <select
+            id="topic"
+            name="topic"
+            defaultValue={topic}
+            className={`${inputClass} sm:max-w-sm`}
+          >
+            <option value="all">{fmt(t.allTopics, { count: total })}</option>
+            {topics.map((c) => (
+              <option key={c.topic} value={c.topic}>
+                {fmt(t.topicOption, { topic: topicLabels[c.topic], count: c.count })}
+              </option>
+            ))}
+          </select>
+        </div>
         <ChoiceGroup
           legend={t.mode}
           name="mode"

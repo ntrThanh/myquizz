@@ -1,34 +1,50 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { formatDateTime, getMessages } from "@/lib/i18n";
 import { routes, withQuery } from "@/lib/routes";
+import { TOPICS, type Topic } from "@/lib/topics";
 import { CONTENT_STATUSES, type ContentStatus } from "@/lib/types";
 import { requireActorRole } from "@/server/auth/session";
 import { listWords } from "@/server/dal/words";
 import { Pagination } from "@/components/pagination";
-import { Badge, Button, ButtonLink, EmptyState, inputClass, PageHeader } from "@/components/ui";
+import { Button, ButtonLink, EmptyState, inputClass, PageHeader } from "@/components/ui";
+import { WordTable } from "@/features/words/components/word-table";
 
 export const metadata: Metadata = { title: getMessages().admin.words };
 
 const MAX_QUERY_LENGTH = 100;
+/** Trang dài hơn mặc định để duyệt và đăng nhiều từ một lượt. */
+const PAGE_SIZE = 50;
 
 function parseStatus(v: unknown): ContentStatus | undefined {
   return CONTENT_STATUSES.find((s) => s === v);
 }
 
+function parseTopic(v: unknown): Topic | undefined {
+  return TOPICS.find((s) => s === v);
+}
+
 export default async function WordsPage({ searchParams }: PageProps<"/admin/words">) {
   const t = getMessages().admin;
+  const topicLabels = getMessages().topics;
   const actor = await requireActorRole("editor", routes.adminWords);
   const sp = await searchParams;
   const query = typeof sp.q === "string" ? sp.q.slice(0, MAX_QUERY_LENGTH) : "";
   const status = parseStatus(sp.status);
+  const topic = parseTopic(sp.topic);
   const page = Number(sp.page) || 1;
-  const { items, total, pageSize } = await listWords(actor, { page, query, status });
+  const { items, total, pageSize } = await listWords(actor, {
+    page,
+    pageSize: PAGE_SIZE,
+    query,
+    status,
+    topic,
+  });
 
   const filters = (p: number) => {
     const params = new URLSearchParams({ page: String(p) });
     if (query) params.set("q", query);
     if (status) params.set("status", status);
+    if (topic) params.set("topic", topic);
     return withQuery(routes.adminWords, params.toString());
   };
 
@@ -58,6 +74,19 @@ export default async function WordsPage({ searchParams }: PageProps<"/admin/word
             </option>
           ))}
         </select>
+        <select
+          name="topic"
+          defaultValue={topic ?? ""}
+          aria-label={t.word.topic}
+          className={`${inputClass} sm:w-56`}
+        >
+          <option value="">{t.word.allTopics}</option>
+          {TOPICS.map((s) => (
+            <option key={s} value={s}>
+              {topicLabels[s]}
+            </option>
+          ))}
+        </select>
         <Button type="submit" variant="secondary">
           {t.searchButton}
         </Button>
@@ -65,51 +94,20 @@ export default async function WordsPage({ searchParams }: PageProps<"/admin/word
       {items.length === 0 ? (
         <EmptyState
           title={t.word.empty}
-          description={query || status ? undefined : t.word.emptyDesc}
+          description={query || status || topic ? undefined : t.word.emptyDesc}
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500 uppercase dark:bg-zinc-900">
-              <tr>
-                <th className="px-4 py-2">{t.word.word}</th>
-                <th className="px-4 py-2">{t.word.meaningVi}</th>
-                <th className="px-4 py-2">{t.word.status}</th>
-                <th className="px-4 py-2">{t.word.colUpdated}</th>
-                <th className="px-4 py-2">
-                  <span className="sr-only">{t.word.editLink}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {items.map((w) => (
-                <tr key={w.id}>
-                  <td className="px-4 py-2 font-medium" lang="en">
-                    {w.word}
-                    {w.ipa && <span className="ml-2 font-normal text-zinc-500">{w.ipa}</span>}
-                  </td>
-                  <td className="px-4 py-2">{w.meaningVi}</td>
-                  <td className="px-4 py-2">
-                    <Badge tone={w.status === "draft" ? "amber" : "indigo"}>
-                      {t.word.statuses[w.status]}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-zinc-500">
-                    {formatDateTime(w.updatedAt, actor.timeZone)}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <Link
-                      href={routes.adminWord(w.id)}
-                      className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-                    >
-                      {t.word.editLink}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <WordTable
+          rows={items.map((w) => ({
+            id: w.id,
+            word: w.word,
+            ipa: w.ipa,
+            meaningVi: w.meaningVi,
+            topic: w.topic,
+            status: w.status,
+            updated: formatDateTime(w.updatedAt, actor.timeZone),
+          }))}
+        />
       )}
       <Pagination page={page} pageSize={pageSize} total={total} href={filters} />
     </>

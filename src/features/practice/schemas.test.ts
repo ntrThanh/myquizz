@@ -6,19 +6,17 @@ const wordId = "a".repeat(24);
 
 describe("parsePracticeSettings", () => {
   it("đọc cài đặt hợp lệ từ searchParams", () => {
-    expect(parsePracticeSettings({ mode: "typing", direction: "mixed", count: "20" })).toEqual({
-      mode: "typing",
-      direction: "mixed",
-      count: 20,
-    });
+    expect(
+      parsePracticeSettings({ mode: "typing", direction: "mixed", count: "20", topic: "medicine" }),
+    ).toEqual({ mode: "typing", direction: "mixed", count: 20, topic: "medicine" });
   });
 
   it("giá trị thiếu hoặc sai thì dùng mặc định", () => {
     expect(parsePracticeSettings({})).toEqual(DEFAULT_PRACTICE_SETTINGS);
     expect(parsePracticeSettings(undefined)).toEqual(DEFAULT_PRACTICE_SETTINGS);
-    expect(parsePracticeSettings({ mode: "flashcard", direction: "fr-vi", count: "999" })).toEqual(
-      DEFAULT_PRACTICE_SETTINGS,
-    );
+    expect(
+      parsePracticeSettings({ mode: "flashcard", direction: "fr-vi", count: "999", topic: "food" }),
+    ).toEqual(DEFAULT_PRACTICE_SETTINGS);
   });
 
   it("tham số lặp lại thì lấy giá trị đầu", () => {
@@ -26,7 +24,7 @@ describe("parsePracticeSettings", () => {
   });
 
   it("query tạo ra đọc lại được đúng cài đặt", () => {
-    const s = { mode: "typing", direction: "vi-en", count: 30 } as const;
+    const s = { mode: "typing", direction: "vi-en", count: 30, topic: "law" } as const;
     const query = Object.fromEntries(new URLSearchParams(practiceSettingsQuery(s)));
     expect(parsePracticeSettings(query)).toEqual(s);
   });

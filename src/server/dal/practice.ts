@@ -1,11 +1,12 @@
 import "server-only";
-import { ObjectId } from "mongodb";
+import { ObjectId, type Document, type Filter } from "mongodb";
 import { startOfDayPlus } from "@/lib/day";
 import {
   DISTRACTOR_POOL_SIZE,
   type Direction,
   type PracticeMode,
   type PracticeSettings,
+  type TopicSetting,
 } from "@/lib/practice/config";
 import {
   buildQuestions,
@@ -14,6 +15,7 @@ import {
   type VocabEntry,
 } from "@/lib/practice/questions";
 import { shuffle } from "@/lib/random";
+import { TOPICS, type Topic } from "@/lib/topics";
 import { INITIAL_SM2, qualityFromAnswer, review } from "@/lib/sm2";
 import { computeStreak, retentionRate } from "@/lib/stats";
 import { assertUser, type Actor } from "@/server/auth/roles";
@@ -21,7 +23,7 @@ import { getMongoClient } from "@/server/db/client";
 import { collections, type WordDoc } from "@/server/db/collections";
 import { NotFoundError, toObjectId } from "@/server/dal/common";
 
-// Luyện tập trên toàn bộ từ vựng đã published. Tiến độ SM-2 của từng người được tạo ở lần trả lời
+// Luyện tập trên từ vựng đã published (mọi chủ đề hoặc một chủ đề). Tiến độ SM-2 của từng người được tạo ở lần trả lời
 // đầu tiên. Mọi truy vấn tiến độ đều lọc theo actor.id lấy từ session.
 
 const PUBLISHED = { status: "published" as const };
@@ -40,27 +42,60 @@ function endOfToday(actor: Actor, now = new Date()) {
   return startOfDayPlus(now, 1, actor.timeZone);
 }
 
+function wordFilter(topic: TopicSetting): Filter<WordDoc> {
+  return topic === "all" ? PUBLISHED : { ...PUBLISHED, topic };
+}
+
+/** Chỉ giữ tiến độ của những từ còn khớp bộ lọc (published, đúng chủ đề). */
+function onlyMatchingWords(filter: Filter<WordDoc>): Document[] {
+  return [
+    {
+      $lookup: {
+        from: "words",
+        localField: "wordId",
+        foreignField: "_id",
+        pipeline: [{ $match: filter }, { $project: { _id: 1 } }],
+        as: "word",
+      },
+    },
+    { $match: { word: { $ne: [] } } },
+  ];
+}
+
+/**
+ * Lấy mẫu số từ gấp bao nhiêu lần số cần để tìm từ chưa học. Tránh `$lookup` trên toàn bộ kho từ
+ * (có thể hàng trăm nghìn từ); kho nhỏ hơn cỡ mẫu thì `$sample` trả về tất cả nên vẫn chính xác.
+ */
+const FRESH_SAMPLE_FACTOR = 10;
+
 /**
  * Chọn từ để luyện, theo thứ tự ưu tiên: từ đến hạn ôn → từ chưa học → từ đã học bất kỳ.
- * Từ đã bị chuyển về draft thì bỏ qua.
+ * Chỉ lấy từ published thuộc chủ đề đã chọn.
  */
-async function pickWords(actor: Actor, count: number): Promise<WordDoc[]> {
+async function pickWords(actor: Actor, count: number, topic: TopicSetting): Promise<WordDoc[]> {
   const userId = new ObjectId(actor.id);
+  const filter = wordFilter(topic);
   const picked: ObjectId[] = [];
 
   const due = await collections
     .userWordProgress()
-    .find({ userId, dueDate: { $lt: endOfToday(actor) } }, { projection: { wordId: 1 } })
-    .sort({ dueDate: 1, _id: 1 })
-    .limit(count)
+    .aggregate<{ wordId: ObjectId }>([
+      { $match: { userId, dueDate: { $lt: endOfToday(actor) } } },
+      { $sort: { dueDate: 1, _id: 1 } },
+      ...onlyMatchingWords(filter),
+      { $limit: count },
+      { $project: { wordId: 1 } },
+    ])
     .toArray();
   picked.push(...due.map((p) => p.wordId));
 
   if (picked.length < count) {
+    const need = count - picked.length;
     const fresh = await collections
       .words()
       .aggregate<{ _id: ObjectId }>([
-        { $match: { ...PUBLISHED, _id: { $nin: picked } } },
+        { $match: { ...filter, _id: { $nin: picked } } },
+        { $sample: { size: need * FRESH_SAMPLE_FACTOR } },
         {
           $lookup: {
             from: "userWordProgress",
@@ -71,7 +106,7 @@ async function pickWords(actor: Actor, count: number): Promise<WordDoc[]> {
           },
         },
         { $match: { progress: { $size: 0 } } },
-        { $sample: { size: count - picked.length } },
+        { $limit: need },
         { $project: { _id: 1 } },
       ])
       .toArray();
@@ -83,6 +118,7 @@ async function pickWords(actor: Actor, count: number): Promise<WordDoc[]> {
       .userWordProgress()
       .aggregate<{ wordId: ObjectId }>([
         { $match: { userId, wordId: { $nin: picked } } },
+        ...onlyMatchingWords(filter),
         { $sample: { size: count - picked.length } },
         { $project: { wordId: 1 } },
       ])
@@ -93,21 +129,47 @@ async function pickWords(actor: Actor, count: number): Promise<WordDoc[]> {
   if (picked.length === 0) return [];
   return collections
     .words()
-    .find({ _id: { $in: picked }, ...PUBLISHED })
+    .find({ ...filter, _id: { $in: picked } })
     .toArray();
 }
 
-async function distractorPool(): Promise<VocabEntry[]> {
+/** Phương án nhiễu lấy cùng chủ đề để câu hỏi không quá dễ đoán. */
+async function distractorPool(topic: TopicSetting): Promise<VocabEntry[]> {
   const words = await collections
     .words()
-    .aggregate<WordDoc>([{ $match: PUBLISHED }, { $sample: { size: DISTRACTOR_POOL_SIZE } }])
+    .aggregate<WordDoc>([
+      { $match: wordFilter(topic) },
+      { $sample: { size: DISTRACTOR_POOL_SIZE } },
+    ])
     .toArray();
   return words.map(toEntry);
 }
 
+export interface TopicCount {
+  topic: Topic;
+  count: number;
+}
+
+/** Các chủ đề đang có từ published (theo thứ tự trong TOPICS), kèm số từ. */
+export async function listPracticeTopics(actor: Actor | null): Promise<TopicCount[]> {
+  assertUser(actor);
+  const groups = await collections
+    .words()
+    .aggregate<{ _id: Topic; count: number }>([
+      { $match: PUBLISHED },
+      { $group: { _id: "$topic", count: { $sum: 1 } } },
+    ])
+    .toArray();
+  const counts = new Map(groups.map((g) => [g._id, g.count]));
+  return TOPICS.flatMap((topic) => {
+    const count = counts.get(topic);
+    return count ? [{ topic, count }] : [];
+  });
+}
+
 export type PracticeSession =
   | { status: "ready"; questions: Question[] }
-  /** Hệ thống chưa có từ nào published. */
+  /** Chưa có từ nào published (trong chủ đề đã chọn). */
   | { status: "noWords" }
   /** Có từ nhưng không đủ để tạo phương án nhiễu cho trắc nghiệm. */
   | { status: "notEnoughWords" };
@@ -118,8 +180,8 @@ export async function getPracticeSession(
 ): Promise<PracticeSession> {
   assertUser(actor);
   const [words, pool] = await Promise.all([
-    pickWords(actor, settings.count),
-    modeNeedsPool(settings.mode) ? distractorPool() : Promise.resolve([]),
+    pickWords(actor, settings.count, settings.topic),
+    modeNeedsPool(settings.mode) ? distractorPool(settings.topic) : Promise.resolve([]),
   ]);
   if (words.length === 0) return { status: "noWords" };
 

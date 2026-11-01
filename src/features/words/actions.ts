@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { routes } from "@/lib/routes";
 import { actionError, invalidInput, type ActionResult } from "@/server/action-result";
 import { getActor } from "@/server/auth/session";
-import { createWord, updateWord } from "@/server/dal/words";
-import { updateWordSchema, wordInputSchema } from "@/features/words/schemas";
+import { createWord, setWordsStatus, updateWord } from "@/server/dal/words";
+import { updateWordSchema, wordInputSchema, wordsStatusSchema } from "@/features/words/schemas";
 
-// createWord/updateWord tự kiểm tra quyền editor và ghi audit log.
+// Các hàm DAL tự kiểm tra quyền editor và ghi audit log.
 
 function revalidateWords() {
   revalidatePath(routes.adminWords);
@@ -34,6 +34,20 @@ export async function updateWordAction(input: unknown): Promise<ActionResult> {
     await updateWord(await getActor(), id, fields);
     revalidateWords();
     return { ok: true, data: undefined };
+  } catch (err) {
+    return actionError(err);
+  }
+}
+
+export async function setWordsStatusAction(
+  input: unknown,
+): Promise<ActionResult<{ changed: number }>> {
+  const parsed = wordsStatusSchema.safeParse(input);
+  if (!parsed.success) return invalidInput();
+  try {
+    const data = await setWordsStatus(await getActor(), parsed.data.ids, parsed.data.status);
+    revalidateWords();
+    return { ok: true, data };
   } catch (err) {
     return actionError(err);
   }

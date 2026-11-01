@@ -3,13 +3,18 @@ import { closeDb, describeDb, makeActor, resetDb, seedWords } from "../../../tes
 import type { PracticeSettings } from "@/lib/practice/config";
 import { collections } from "@/server/db/collections";
 import { NotFoundError } from "@/server/dal/common";
-import { getPracticeSession, getStats, recordAnswer } from "@/server/dal/practice";
+import {
+  getPracticeSession,
+  getStats,
+  listPracticeTopics,
+  recordAnswer,
+} from "@/server/dal/practice";
 
 describeDb("DAL: luyện tập", () => {
   let ids: Awaited<ReturnType<typeof seedWords>>;
   const user = makeActor("user");
-  const quiz: PracticeSettings = { mode: "quiz", direction: "en-vi", count: 10 };
-  const typing: PracticeSettings = { mode: "typing", direction: "vi-en", count: 10 };
+  const quiz: PracticeSettings = { mode: "quiz", direction: "en-vi", count: 10, topic: "all" };
+  const typing: PracticeSettings = { mode: "typing", direction: "vi-en", count: 10, topic: "all" };
 
   const answer = (wordId: string, correct: boolean, actor = user) =>
     recordAnswer(actor, { wordId, mode: "quiz", direction: "en-vi", correct });
@@ -57,6 +62,27 @@ describeDb("DAL: luyện tập", () => {
     if (s.status !== "ready") throw new Error(s.status);
     const picked = s.questions.map((q) => q.wordId);
     expect(picked).toEqual(expect.arrayContaining(many.publishedIds.slice(10)));
+  });
+
+  it("chọn chủ đề thì chỉ hỏi từ trong chủ đề đó, kể cả từ đến hạn ôn", async () => {
+    const medicine = await seedWords(4, 1, "medicine");
+    await answer(ids.publishedIds[0]!, false);
+    await collections.userWordProgress().updateMany({}, { $set: { dueDate: new Date(0) } });
+    const s = await getPracticeSession(user, { ...typing, topic: "medicine" });
+    if (s.status !== "ready") throw new Error(s.status);
+    expect(s.questions.map((q) => q.wordId).sort()).toEqual([...medicine.publishedIds].sort());
+    expect(await getPracticeSession(user, { ...typing, topic: "law" })).toEqual({
+      status: "noWords",
+    });
+  });
+
+  it("danh sách chủ đề chỉ gồm chủ đề có từ published, kèm số từ", async () => {
+    await seedWords(2, 0, "medicine");
+    await seedWords(0, 3, "law");
+    expect(await listPracticeTopics(user)).toEqual([
+      { topic: "general", count: 5 },
+      { topic: "medicine", count: 2 },
+    ]);
   });
 
   it("lần trả lời đầu tạo tiến độ SM-2 và reviewLog", async () => {

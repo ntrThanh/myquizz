@@ -38,9 +38,18 @@
     "ctaStart": "Bắt đầu luyện",
     "ctaLogin": "Đã có tài khoản",
     "features": [
-      { "title": "Gõ đáp án", "desc": "Tự gõ lại từ tiếng Anh hoặc nghĩa tiếng Việt." },
-      { "title": "Trắc nghiệm", "desc": "Chọn đáp án đúng trong nhiều phương án." },
-      { "title": "Song ngữ", "desc": "Tùy chọn chiều hỏi; từ hay sai sẽ được hỏi lại sớm hơn." }
+      {
+        "title": "Gõ đáp án",
+        "desc": "Tự gõ lại từ tiếng Anh hoặc nghĩa tiếng Việt."
+      },
+      {
+        "title": "Trắc nghiệm",
+        "desc": "Chọn đáp án đúng trong nhiều phương án."
+      },
+      {
+        "title": "Song ngữ",
+        "desc": "Tùy chọn chiều hỏi; từ hay sai sẽ được hỏi lại sớm hơn."
+      }
     ]
   },
   "auth": {
@@ -65,8 +74,14 @@
     "setupTitle": "Bắt đầu một lượt luyện",
     "mode": "Cách trả lời",
     "modes": {
-      "typing": { "title": "Gõ đáp án", "desc": "Tự gõ lại từ hoặc nghĩa" },
-      "quiz": { "title": "Trắc nghiệm", "desc": "Chọn 1 trong {count} phương án" }
+      "typing": {
+        "title": "Gõ đáp án",
+        "desc": "Tự gõ lại từ hoặc nghĩa"
+      },
+      "quiz": {
+        "title": "Trắc nghiệm",
+        "desc": "Chọn 1 trong {count} phương án"
+      }
     },
     "direction": "Chiều hỏi",
     "directions": {
@@ -76,6 +91,9 @@
     },
     "count": "Số câu",
     "countOption": "{count} câu",
+    "topic": "Chủ đề",
+    "allTopics": "Tất cả chủ đề ({count} từ)",
+    "topicOption": "{topic} ({count} từ)",
     "start": "Bắt đầu",
     "stats": {
       "totalWords": "Từ vựng",
@@ -137,7 +155,11 @@
     "saved": "Đã lưu.",
     "noUsers": "Không có người dùng nào.",
     "noAudit": "Chưa có thao tác nào.",
-    "roles": { "user": "Người học", "editor": "Biên tập", "admin": "Quản trị" },
+    "roles": {
+      "user": "Người học",
+      "editor": "Biên tập",
+      "admin": "Quản trị"
+    },
     "word": {
       "new": "Thêm từ",
       "edit": "Sửa từ",
@@ -154,8 +176,40 @@
       "optional": "không bắt buộc",
       "status": "Trạng thái",
       "statusHint": "Từ ở trạng thái nháp sẽ không xuất hiện khi luyện tập.",
-      "statuses": { "draft": "Nháp", "published": "Đã đăng" },
-      "colUpdated": "Cập nhật"
+      "statuses": {
+        "draft": "Nháp",
+        "published": "Đã đăng"
+      },
+      "colUpdated": "Cập nhật",
+      "topic": "Chủ đề",
+      "allTopics": "Mọi chủ đề",
+      "colTopic": "Chủ đề",
+      "select": "Chọn từ này",
+      "selectAll": "Chọn tất cả trên trang",
+      "selected": "Đã chọn {count} từ",
+      "publishSelected": "Đăng các từ đã chọn",
+      "draftSelected": "Chuyển về nháp",
+      "bulkDone": "Đã đổi trạng thái {count} từ."
     }
+  },
+  "topics": {
+    "general": "Thông dụng",
+    "economics": "Kinh tế, thương mại",
+    "technology": "Kỹ thuật",
+    "computing": "Tin học",
+    "medicine": "Y học",
+    "biology": "Sinh học",
+    "chemistry": "Hóa học",
+    "physics": "Vật lý",
+    "math": "Toán học",
+    "geography": "Địa lý, địa chất",
+    "law": "Pháp luật, chính trị",
+    "military": "Quân sự",
+    "transport": "Giao thông, hàng hải",
+    "arts": "Nghệ thuật, văn học",
+    "sports": "Thể thao",
+    "humanities": "Xã hội, lịch sử, tôn giáo",
+    "agriculture": "Nông nghiệp",
+    "specialized": "Chuyên ngành khác"
   }
 }
