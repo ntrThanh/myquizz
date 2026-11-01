@@ -213,6 +213,7 @@ Mỗi pull request: lint → typecheck → test → build. Merge vào `main`: bu
 - Ưu tiên Server Component; chỉ dùng Client Component khi cần tương tác.
 - Mutation đi qua server action hoặc route handler, luôn: xác thực → phân quyền → validate Zod → gọi DAL → ghi audit (nếu là thao tác quản trị) → revalidate cache.
 - Mọi trang xử lý đủ trạng thái: loading, rỗng, lỗi.
+- Phong cách theo skill `apple-design`: màu, vật liệu kính và chuyển động khai báo một chỗ ở `src/app/globals.css`. Component dùng token (`text-label`, `text-label-secondary`, `bg-accent`, `bg-fill-3`, `glass`, `press`, `animate-rise`...), không dùng màu Tailwind cứng (`zinc-*`, `indigo-*`). Chuyển động chỉ dùng `transform`/`opacity` và phải có nhánh `prefers-reduced-motion`.
 - Giao diện responsive (ưu tiên điện thoại), dark mode theo hệ thống, có thể dùng bàn phím (trắc nghiệm: 1-4 chọn, Enter câu tiếp; gõ đáp án: Enter kiểm tra/câu tiếp), đạt yêu cầu truy cập cơ bản (label, tương phản, focus).
 - Chuỗi giao diện đặt trong `src/messages/`, không viết cứng trong component. Đường dẫn dùng `routes` trong `src/lib/routes.ts`. Lựa chọn luyện tập (chế độ, chiều hỏi, số câu, số phương án) chỉ khai báo ở `src/lib/practice/config.ts`; danh sách chủ đề ở `src/lib/topics.ts`.
 - Chế độ luyện tập theo kiểu strategy: mỗi chế độ một mục trong `STRATEGIES` (`src/lib/practice/questions.ts`) và một component nhập đáp án (`answer-view.tsx`). Thêm chế độ không sửa logic của chế độ khác.
