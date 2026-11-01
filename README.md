@@ -19,6 +19,7 @@ cp .env.example .env               # rồi thay các mật khẩu change-me-* (d
 docker compose -f compose.yml -f compose.dev.yml up -d   # Mongo + Redis
 npm run db:migrate
 npm run db:seed                    # dữ liệu mẫu: 34 từ
+npm run db:import:fvdp -- <file.db> # tùy chọn: nạp từ điển Anh–Việt FVDP (~366 nghìn từ, dạng nháp)
 npm run dev                        # http://localhost:3000
 ```
 
@@ -96,14 +97,26 @@ Phím tắt: trắc nghiệm `1`–`4` chọn, `Enter` câu tiếp; gõ đáp á
 
 ### Luyện tập
 
-- **Chế độ** (`mode`): `typing` (gõ đáp án) hoặc `quiz` (trắc nghiệm 4 phương án). **Chiều hỏi** (`direction`): `en-vi`, `vi-en`, `mixed` (mỗi câu ngẫu nhiên một chiều). **Số câu** (`count`): 10/20/30. Danh sách lựa chọn nằm ở `src/lib/practice/config.ts`; giá trị sai trên URL thì dùng mặc định.
-- Từ được chọn theo thứ tự: đến hạn ôn (SM-2) → chưa học → đã học bất kỳ. Không cần "thêm vào danh sách học"; tiến độ được tạo ở lần trả lời đầu. Đúng = Good, sai = Again.
+- **Chế độ** (`mode`): `typing` (gõ đáp án) hoặc `quiz` (trắc nghiệm 4 phương án). **Chiều hỏi** (`direction`): `en-vi`, `vi-en`, `mixed` (mỗi câu ngẫu nhiên một chiều). **Số câu** (`count`): 10/20/30. **Chủ đề** (`topic`): `all` hoặc một chủ đề trong `src/lib/topics.ts`; trang thiết lập chỉ liệt kê chủ đề đang có từ đã đăng. Danh sách lựa chọn nằm ở `src/lib/practice/config.ts`; giá trị sai trên URL thì dùng mặc định.
+- Từ được chọn theo thứ tự (trong chủ đề đã chọn): đến hạn ôn (SM-2) → chưa học → đã học bất kỳ. Phương án nhiễu của trắc nghiệm lấy cùng chủ đề. Không cần "thêm vào danh sách học"; tiến độ được tạo ở lần trả lời đầu. Đúng = Good, sai = Again.
 - Gõ đáp án: không phân biệt hoa thường, khoảng trắng thừa. Nghĩa có nhiều cách hiểu thì nhập cách nhau bằng dấu phẩy (`cơm, gạo`); gõ đúng một nghĩa là được.
 - Thêm chế độ mới: thêm vào `PRACTICE_MODES`, thêm strategy trong `src/lib/practice/questions.ts`, thêm component nhập đáp án trong `answer-view.tsx` và nhãn trong `vi.json`.
 
 ### Từ vựng
 
 Editor/admin thêm và sửa từ ở `/admin/words`; mọi thao tác ghi audit log. Không có xóa cứng (để không mất tiến độ học): chuyển về **Nháp** để ẩn khỏi luyện tập.
+
+- **Chủ đề:** mỗi từ thuộc một chủ đề (`src/lib/topics.ts`, nhãn ở `topics` trong `vi.json`). Từ thêm tay mặc định `general` (Thông dụng).
+- **Đăng dần:** lọc theo chủ đề/trạng thái (50 từ mỗi trang), tick chọn rồi bấm **Đăng các từ đã chọn** hoặc **Chuyển về nháp** (tối đa 100 từ mỗi lượt, một dòng audit `word.bulkStatus` cho cả lượt).
+
+### Nạp từ điển FVDP
+
+`npm run db:import:fvdp -- <file.db>` nạp phần Anh–Việt của [Free Vietnamese Dictionary Project](http://www.informatik.uni-leipzig.de/~duc/Dict/) từ file SQLite (bảng `words`, `meanings`, `sources`). Phần `AI_Generated_EN` (Việt–Anh) trong cùng file không được nạp.
+
+- Mọi từ vào ở trạng thái **Nháp**, `source: "fvdp"`. Nghĩa: tối đa 3 nghĩa đầu, bỏ HTML, bỏ thành ngữ (`!…`) và tham chiếu (`xem …`), cắt vừa 300 ký tự. Ví dụ: cụm tiếng Anh in đậm đầu tiên.
+- Chủ đề: theo nhãn lĩnh vực ở nghĩa đầu (`(y học)`, `(kinh tế)`…, bảng ánh xạ ở `scripts/fvdp/parse.ts`); không có nhãn thì mục có từ loại → `general`, còn lại (thuật ngữ) → `specialized`. Chỉ khoảng 10% mục có nhãn, nên phần lớn rơi vào hai chủ đề này.
+- Chạy lại an toàn: không nhân đôi, không ghi đè từ có sẵn; chỉ cập nhật từ FVDP chưa ai sửa (vẫn nháp, `updatedAt` = `createdAt`). Chạy bằng user của app (`readWrite`), mất khoảng 2 phút.
+- Giấy phép: dữ liệu FVDP theo GPL. Khi đăng nội dung này ở production nên ghi nguồn (xem "Ghi chú và quyết định").
 
 ## Cấu trúc
 
@@ -123,7 +136,7 @@ src/
   messages/vi.json      # chuỗi giao diện
   proxy.ts              # chặn sớm /learn, /admin khi chưa có cookie phiên
 migrations/             # runner, CLI, danh sách và script migration
-scripts/                # seed, set-role (chạy ngoài Next.js)
+scripts/                # seed, set-role, import-fvdp (+ fvdp/parse.ts) (chạy ngoài Next.js)
 test/                   # helper test tích hợp
 docker/                 # Dockerfile, Caddyfile, script Mongo
 compose*.yml
@@ -146,3 +159,5 @@ compose*.yml
 - **`/api/health` không cần đăng nhập:** chỉ trả trạng thái kết nối DB, không đọc dữ liệu.
 - **CI:** chạy lint, format, typecheck, test (có Mongo thật), build và build image. Đẩy GHCR, quét Trivy, deploy staging/prod để Giai đoạn 3.
 - **Lỗi "OS file watch limit reached" khi `npm run dev`:** tăng giới hạn inotify, ví dụ `sudo sysctl fs.inotify.max_user_watches=524288` (thêm vào `/etc/sysctl.d/` để giữ sau khi khởi động lại).
+- **Chủ đề từ vựng (2026-11-01):** danh sách cố định trong `src/lib/topics.ts`, chưa có trang quản lý chủ đề. Migration `0004` gán `general` cho từ cũ và thêm index; không đổi validator nên không cần quyền `collMod`. Danh sách quản trị sắp theo `_id` (mới nhất trước) để có index cho mọi tổ hợp lọc.
+- **Dữ liệu FVDP (GPL):** dùng nội dung FVDP trên web công khai nên ghi nguồn "Free Vietnamese Dictionary Project" (ví dụ ở chân trang). Chất lượng không đồng đều (bản 2004, nhiều thuật ngữ), nên nạp ở dạng nháp và editor duyệt trước khi đăng. Tìm kiếm trong `/admin/words` dùng regex (quét toàn bộ, ~0,8 giây với 366 nghìn từ); cần nhanh hơn thì chuyển sang text index.
